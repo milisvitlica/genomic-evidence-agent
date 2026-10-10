@@ -1,0 +1,11 @@
+langgraph>=1.2
+langchain[mcp]>=1.4
+langchain-openai
+fastapi>=0.115
+uvicorn[standard]
+pydantic-settings
+python-dotenv
+pandas
+pyarrow
+httpx
+pytest

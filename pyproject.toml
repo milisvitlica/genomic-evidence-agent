@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "genomic-evidence-agent"
+version = "0.1.0"
+description = "LangGraph agent that gathers variant evidence from the ClinVar pathogenicity classifier and PubMed."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "langgraph>=1.2",
+    "langchain[mcp]>=1.4",
+    "langchain-openai",
+    "fastapi>=0.115",
+    "uvicorn[standard]",
+    "pydantic-settings",
+    "python-dotenv",
+    "pandas",
+    "pyarrow",
+    "httpx",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
