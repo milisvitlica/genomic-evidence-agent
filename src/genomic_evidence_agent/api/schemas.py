@@ -1,4 +1,13 @@
+from typing import Any
+
 from pydantic import BaseModel, Field
+
+
+class TraceEvent(BaseModel):
+    type: str
+    name: str | None = None
+    args: dict[str, Any] | None = None
+    content: str | None = None
 
 
 class EvidenceRequest(BaseModel):
@@ -12,6 +21,7 @@ class EvidenceRequest(BaseModel):
 class EvidenceResponse(BaseModel):
     answer: str
     thread_id: str
+    trace: list[TraceEvent] = Field(default_factory=list)
 
 
 class HealthResponse(BaseModel):

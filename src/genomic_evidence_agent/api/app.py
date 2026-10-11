@@ -9,6 +9,7 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException
 
 from genomic_evidence_agent.agent.graph import EvidenceAgent, build_evidence_agent
+from genomic_evidence_agent.agent.trace import log_trace, trace_messages
 from genomic_evidence_agent.api.schemas import EvidenceRequest, EvidenceResponse, HealthResponse
 from genomic_evidence_agent.config import get_settings
 
@@ -73,7 +74,13 @@ def create_app() -> FastAPI:
         messages = result.get("messages") or []
         if not messages:
             raise HTTPException(status_code=502, detail="Agent returned no messages.")
-        return EvidenceResponse(answer=message_text(messages[-1].content), thread_id=thread_id)
+        trace = trace_messages(messages)
+        log_trace(body.question, trace)
+        return EvidenceResponse(
+            answer=message_text(messages[-1].content),
+            thread_id=thread_id,
+            trace=trace,
+        )
 
     return app
 
