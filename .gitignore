@@ -27,7 +27,7 @@ htmlcov/
 
 # Local data and logs
 data/
-*.log
+# *.log
 
 # OS
 .DS_Store

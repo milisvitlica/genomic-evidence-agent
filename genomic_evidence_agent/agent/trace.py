@@ -15,7 +15,7 @@ from langchain_core.callbacks import BaseCallbackHandler
 logger = logging.getLogger("genomic_evidence_agent.trace")
 
 # genomic_evidence_agent/agent/trace.py -> repository root is parents[2].
-TRACE_LOG = Path(__file__).resolve().parents[2] / "trace-examples.log"
+TRACE_LOG = Path(__file__).resolve().parents[2] / "tests" / "trace-examples.log"
 _WRITE_LOCK = threading.Lock()
 
 
