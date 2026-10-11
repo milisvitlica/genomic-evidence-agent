@@ -32,12 +32,13 @@ journal, date, DOI) so a later ranking step can reorder those hits.
 ## Layout
 
 ```
-src/genomic_evidence_agent/
+genomic_evidence_agent/
   config.py              # CLASSIFIER_ROOT, model, NCBI credentials
   tools/classifier.py    # joined-dataset and scored-VUS queries
   mcp/pubmed.py          # in-process PubMed MCP server
   agent/graph.py         # compile the LangGraph agent
   agent/prompts.py
+  agent/trace.py         # tool-call and tool-result trace
   api/app.py             # FastAPI app
 tests/
 ```
@@ -63,7 +64,7 @@ Optional NCBI credentials (`NCBI_API_KEY`, `NCBI_EMAIL`) raise the PubMed rate l
 Set `PUBMED_MCP_ENABLED=false` to run with the two dataset tools only.
 
 ```bash
-uvicorn genomic_evidence_agent.api.app:app --reload
+python -m uvicorn genomic_evidence_agent.api.app:app --host 127.0.0.1 --port 8000
 ```
 
 `GET /health` lists the three tools and whether the classifier tables are on disk.

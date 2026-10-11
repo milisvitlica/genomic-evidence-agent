@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# src/genomic_evidence_agent/config.py -> repository root is parents[2].
-_PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+# genomic_evidence_agent/config.py -> repository root is parents[1].
+_PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 # The OpenAI client reads OPENAI_API_KEY from the process environment.
 # pydantic-settings loads .env into Settings only, so export it here too.
 load_dotenv(_PACKAGE_ROOT / ".env")

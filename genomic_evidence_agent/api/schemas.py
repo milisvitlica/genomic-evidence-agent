@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 class TraceEvent(BaseModel):
     type: str
+    timestamp: str
     name: str | None = None
     args: dict[str, Any] | None = None
     content: str | None = None
