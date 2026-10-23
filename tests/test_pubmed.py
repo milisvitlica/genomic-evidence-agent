@@ -1,10 +1,14 @@
 import asyncio
 import json
+from pathlib import Path
 
 import httpx
 
 from genomic_evidence_agent.config import Settings
-from genomic_evidence_agent.mcp.pubmed import load_pubmed_tools, parse_pubmed_summary, search_pubmed
+from genomic_evidence_agent.mcp.pubmed_server import load_pubmed_tools
+from genomic_evidence_agent.tools.pubmed import parse_pubmed_summary, search_pubmed
+
+FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def test_parse_pubmed_summary_keeps_pmid_order():
@@ -54,9 +58,14 @@ def test_search_pubmed_uses_esearch_then_esummary():
 
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         payload = search_pubmed("BRCA1", max_results=3, api_key="secret", client=client)
-    assert payload["n_results"] == 1
-    assert payload["articles"][0]["pmid"] == "42"
-    assert payload["articles"][0]["title"] == "BRCA1 study"
+    expected = json.loads((FIXTURES / "pubmed_search_expected.json").read_text(encoding="utf-8"))
+    assert payload["query"] == expected["query"]
+    assert payload["n_results"] == expected["n_results"]
+    article = payload["articles"][0]
+    expected_article = expected["articles"][0]
+    assert article["pmid"] == expected_article["pmid"]
+    assert article["title"] == expected_article["title"]
+    assert article["journal"] == expected_article["journal"]
 
 
 def test_pubmed_mcp_exposes_one_search_tool():

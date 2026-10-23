@@ -15,7 +15,7 @@ from langchain_core.callbacks import BaseCallbackHandler
 logger = logging.getLogger("genomic_evidence_agent.trace")
 
 # genomic_evidence_agent/agent/trace.py -> repository root is parents[2].
-TRACE_LOG = Path(__file__).resolve().parents[2] / "tests" / "trace-examples.log"
+TRACE_LOG = Path(__file__).resolve().parents[2] / "logs" / "trace.log"
 _WRITE_LOCK = threading.Lock()
 
 
@@ -136,6 +136,7 @@ def log_rejected(detail: str, *, body: Any = None, path: Path | None = None) -> 
 
 def _append(text: str, path: Path | None) -> None:
     destination = path or TRACE_LOG
+    destination.parent.mkdir(parents=True, exist_ok=True)
     with _WRITE_LOCK:
         with destination.open("a", encoding="utf-8") as handle:
             handle.write(text)

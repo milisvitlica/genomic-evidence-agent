@@ -1,0 +1,26 @@
+# Architecture
+
+A question arrives at `POST /evidence`. FastAPI hands it to a LangGraph agent. The agent calls one or more tools, then writes the answer. `GET /health` reports whether the two classifier tables and the PubMed tool loaded. It does not call the model.
+
+## Request path
+
+1. `api/app.py` starts the agent once, in the FastAPI lifespan.
+2. `agent/graph.py` builds the tool list and compiles it with `create_agent`. The graph has a `model` node and a `tools` node. `MemorySaver` keeps a conversation under `thread_id`.
+3. `agent/prompts.py` tells the model to call a tool before stating a label, a score, or a paper.
+4. `agent/trace.py` records each tool call and tool result. That file is appended under `logs/`, which Git ignores.
+
+## Tools
+
+| Tool | Code | Data |
+| --- | --- | --- |
+| `query_joined_dataset` | `tools/classifier.py` | `clinvar_uniprot_joined.parquet` |
+| `query_scored_vus` | `tools/classifier.py` | `vus_inference_predictions.parquet` |
+| `search_pubmed` | `tools/pubmed.py`, served by `mcp/pubmed_server.py` | NCBI E-utilities |
+
+`tools/pubmed.py` holds the search and a LangChain wrapper, `build_pubmed_tool`. The running agent does not call that wrapper directly. `mcp/pubmed_server.py` exposes the same search as an in-process FastMCP server, and `MCPAdapter` turns it into the tool the graph calls. Each call opens its own MCP session, so the tool still works after the adapter used at startup has closed.
+
+The classifier checkout is a sibling project. This service reads its processed tables. It does not reload the CatBoost model. A VUS `pred_label` is the stored probability compared with the saved Youden threshold.
+
+## What is committed
+
+`docs/examples/` records questions and the tool calls they produced. `tests/fixtures/` holds the small JSON files the tests compare against. `logs/` is local runtime output and stays out of Git.

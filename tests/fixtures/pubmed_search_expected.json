@@ -1,0 +1,11 @@
+{
+  "query": "BRCA1",
+  "n_results": 1,
+  "articles": [
+    {
+      "pmid": "42",
+      "title": "BRCA1 study",
+      "journal": "Nature"
+    }
+  ]
+}

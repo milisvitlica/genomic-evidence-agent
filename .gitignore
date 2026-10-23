@@ -25,9 +25,10 @@ htmlcov/
 # Jupyter
 .ipynb_checkpoints/
 
-# Local data and logs
+# Local data and logs. docs/examples are committed; logs/ is runtime output.
 data/
-# *.log
+logs/
+*.log
 
 # OS
 .DS_Store

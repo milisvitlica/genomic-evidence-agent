@@ -1,0 +1,8 @@
+{
+  "table": "clinvar_uniprot_joined.parquet",
+  "variation_id": 7884,
+  "gene": "ABCA4",
+  "name": "NM_000350.3(ABCA4):c.6148G>C (p.Val2050Leu)",
+  "label": "benign",
+  "entry": "P78363"
+}

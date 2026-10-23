@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -27,14 +28,18 @@ def catalog() -> ClassifierCatalog:
 
 
 def test_joined_lookup_by_id(catalog: ClassifierCatalog):
-    payload = catalog.query_joined_dataset(variation_id=7884)
-    assert payload["table"] == "clinvar_uniprot_joined.parquet"
+    expected = json.loads(
+        (Path(__file__).parent / "fixtures" / "variant_lookup_expected.json").read_text(encoding="utf-8")
+    )
+    payload = catalog.query_joined_dataset(variation_id=expected["variation_id"])
+    assert payload["table"] == expected["table"]
     assert payload["n_matches"] >= 1
     record = payload["records"][0]
-    assert record["VariationID"] == 7884
-    assert record["gene"] == "ABCA4"
-    assert record["label"] == "benign"
-    assert record["Entry"] == "P78363"
+    assert record["VariationID"] == expected["variation_id"]
+    assert record["gene"] == expected["gene"]
+    assert record["Name"] == expected["name"]
+    assert record["label"] == expected["label"]
+    assert record["Entry"] == expected["entry"]
 
 
 def test_joined_gene_filter_is_capped(catalog: ClassifierCatalog):

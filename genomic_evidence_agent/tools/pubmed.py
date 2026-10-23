@@ -1,16 +1,17 @@
-"""PubMed literature search as an in-process MCP server.
+"""PubMed search and its LangChain tool.
 
-NCBI E-utilities are called from Python. The tool is exposed through MCP so a
-later ranking or retrieval step can sit on this server without changing the
-agent's dataset tools. Node.js is not involved.
+NCBI E-utilities return article metadata only. The in-process MCP server in
+``mcp/pubmed_server.py`` calls ``search_pubmed``; ``build_pubmed_tool`` is the
+same search wrapped as a LangChain tool.
 """
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import httpx
-from fastmcp import FastMCP
+from langchain_core.tools import tool
 
 from genomic_evidence_agent.config import Settings
 
@@ -96,31 +97,22 @@ def search_pubmed(
     return {"query": text, "n_results": len(articles), "articles": articles}
 
 
-def build_pubmed_server(settings: Settings) -> FastMCP:
-    """MCP server with a single literature-search tool."""
-    server = FastMCP("pubmed")
+def build_pubmed_tool(settings: Settings):
+    """LangChain tool for ``search_pubmed``. The agent loads the MCP tool instead."""
 
-    @server.tool(name="search_pubmed")
-    def search_pubmed_tool(query: str, max_results: int = DEFAULT_MAX_RESULTS) -> dict[str, Any]:
+    @tool("search_pubmed")
+    def search_pubmed_tool(query: str, max_results: int = DEFAULT_MAX_RESULTS) -> str:
         """Search PubMed and return PMID, title, authors, journal, date, and DOI.
 
         query uses PubMed syntax (gene symbols, variant names, Boolean operators).
-        This returns article metadata only, so a later ranking step can reorder
-        these hits. It does not download full text.
+        This returns article metadata only. It does not download full text.
         """
-        return search_pubmed(
+        payload = search_pubmed(
             query,
             max_results=max_results,
             api_key=settings.ncbi_api_key,
             email=settings.ncbi_email,
         )
+        return json.dumps(payload)
 
-    return server
-
-
-async def load_pubmed_tools(settings: Settings) -> list:
-    """Discover the PubMed MCP tool and return it as a LangChain tool."""
-    from langchain.mcp import MCPAdapter
-
-    async with MCPAdapter(build_pubmed_server(settings)) as adapter:
-        return await adapter.list_tools()
+    return search_pubmed_tool

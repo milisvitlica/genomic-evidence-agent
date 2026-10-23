@@ -14,7 +14,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from genomic_evidence_agent.agent.prompts import SYSTEM_PROMPT
 from genomic_evidence_agent.config import Settings, get_settings
-from genomic_evidence_agent.mcp.pubmed import load_pubmed_tools
+from genomic_evidence_agent.mcp.pubmed_server import load_pubmed_tools
 from genomic_evidence_agent.tools.classifier import ClassifierCatalog, build_classifier_tools
 
 logger = logging.getLogger(__name__)

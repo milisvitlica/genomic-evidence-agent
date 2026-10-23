@@ -33,15 +33,22 @@ journal, date, DOI) so a later ranking step can reorder those hits.
 
 ```
 genomic_evidence_agent/
-  config.py              # CLASSIFIER_ROOT, model, NCBI credentials
-  tools/classifier.py    # joined-dataset and scored-VUS queries
-  mcp/pubmed.py          # in-process PubMed MCP server
-  agent/graph.py         # compile the LangGraph agent
-  agent/prompts.py
-  agent/trace.py         # tool-call and tool-result trace
-  api/app.py             # FastAPI app
+  tools/
+    classifier.py        # joined-dataset and scored-VUS queries
+    pubmed.py            # PubMed search and LangChain wrapper
+  mcp/
+    pubmed_server.py     # in-process FastMCP server
+  agent/                 # LangGraph graph, prompt, request trace
+  api/                   # FastAPI
+docs/
+  architecture.md
+  examples/              # committed question/tool-call examples
 tests/
+  fixtures/              # expected JSON checked by pytest
+logs/                    # runtime traces; ignored by Git
 ```
+
+See `docs/architecture.md` for the request path. The four worked examples are in `docs/examples/`.
 
 ## Getting started
 
