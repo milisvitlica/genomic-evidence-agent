@@ -28,8 +28,10 @@ def build_pubmed_server(settings: Settings) -> FastMCP:
         """Search PubMed and return PMID, title, authors, journal, date, and DOI.
 
         query uses PubMed syntax (gene symbols, variant names, Boolean operators).
-        This returns article metadata only, so a later ranking step can reorder
-        these hits. It does not download full text.
+        max_results defaults to 8. If that first page is not relevant to the
+        question, call again with max_results=20. This returns article metadata
+        only, so a later ranking step can reorder these hits. It does not
+        download full text.
         """
         return search_pubmed(
             query,

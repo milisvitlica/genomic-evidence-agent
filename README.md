@@ -25,7 +25,7 @@ reload the model. PubMed search returns article metadata (PMID, title, authors,
 journal, date, DOI) so a later ranking step can reorder those hits.
 `get_article_details` adds the abstract for one of those PMIDs.
 
-PubMed is the MCP server because the search is not tied to these tables: another agent can reuse it, and the server only wraps a public API (the NCBI key and rate limits are the sensitive part). Ranking, caching, and query logic can change there without changing the agent. It is also the concrete place to see tools, schemas, transports, and session lifecycle.
+PubMed is the MCP server because the search is not tied to these tables: another agent can reuse it, and the server only wraps a public API (the NCBI key and rate limits are the sensitive part). Ranking, caching, and query logic can change there without changing the agent.
 
 ## Stack
 
