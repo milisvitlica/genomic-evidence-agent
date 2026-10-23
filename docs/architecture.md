@@ -17,10 +17,12 @@ A question arrives at `POST /evidence`. FastAPI hands it to a LangGraph agent. T
 | `query_scored_vus` | `tools/classifier.py` | `vus_inference_predictions.parquet` |
 | `search_pubmed` | `tools/pubmed.py`, served by `mcp/pubmed_server.py` | NCBI E-utilities |
 
-`tools/pubmed.py` holds the search and a LangChain wrapper, `build_pubmed_tool`. The running agent does not call that wrapper directly. `mcp/pubmed_server.py` exposes the same search as an in-process FastMCP server, and `MCPAdapter` turns it into the tool the graph calls. Each call opens its own MCP session, so the tool still works after the adapter used at startup has closed.
+`tools/pubmed.py` holds the NCBI search. `mcp/pubmed_server.py` exposes that function as an in-process FastMCP server, and `MCPAdapter` turns it into the tool the graph calls. Each call opens its own MCP session, so the tool still works after the adapter used at startup has closed.
 
 The classifier checkout is a sibling project. This service reads its processed tables. It does not reload the CatBoost model. A VUS `pred_label` is the stored probability compared with the saved Youden threshold.
 
 ## What is committed
 
-`docs/examples/` records questions and the tool calls they produced. `tests/fixtures/` holds the small JSON files the tests compare against. `logs/` is local runtime output and stays out of Git.
+`docs/examples/` records each saved run as the question, the evidence returned, the agent's final answer, and the limitations. `tests/fixtures/` holds the small JSON files the tests compare against. `tests/unit/` covers individual functions. `tests/integration/` covers the API, classifier tool calls, and the PubMed MCP lifecycle. `tests/evals/` checks a few representative records against expected evidence. `logs/` and `outputs/` stay out of Git.
+
+`scripts/run_examples.py` posts a fixed question list to a running server and writes each response under `outputs/examples/`. Review those drafts, then copy the cases you want into `docs/examples/` and write the limitations there. The script does not edit the committed examples.

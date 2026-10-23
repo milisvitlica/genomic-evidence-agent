@@ -1,14 +1,11 @@
-import asyncio
 import json
 from pathlib import Path
 
 import httpx
 
-from genomic_evidence_agent.config import Settings
-from genomic_evidence_agent.mcp.pubmed_server import load_pubmed_tools
 from genomic_evidence_agent.tools.pubmed import parse_pubmed_summary, search_pubmed
 
-FIXTURES = Path(__file__).parent / "fixtures"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 
 
 def test_parse_pubmed_summary_keeps_pmid_order():
@@ -66,13 +63,3 @@ def test_search_pubmed_uses_esearch_then_esummary():
     assert article["pmid"] == expected_article["pmid"]
     assert article["title"] == expected_article["title"]
     assert article["journal"] == expected_article["journal"]
-
-
-def test_pubmed_mcp_exposes_one_search_tool():
-    settings = Settings(pubmed_mcp_enabled=True, ncbi_api_key=None, ncbi_email=None)
-    tools = asyncio.run(load_pubmed_tools(settings))
-    assert [tool.name for tool in tools] == ["search_pubmed"]
-    schema = tools[0].args_schema
-    if hasattr(schema, "model_json_schema"):
-        schema = schema.model_json_schema()
-    assert "query" in json.dumps(schema)

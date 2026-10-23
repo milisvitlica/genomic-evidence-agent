@@ -32,23 +32,28 @@ journal, date, DOI) so a later ranking step can reorder those hits.
 ## Layout
 
 ```
-genomic_evidence_agent/
-  tools/
-    classifier.py        # joined-dataset and scored-VUS queries
-    pubmed.py            # PubMed search and LangChain wrapper
-  mcp/
-    pubmed_server.py     # in-process FastMCP server
-  agent/                 # LangGraph graph, prompt, request trace
-  api/                   # FastAPI
+src/genomic_evidence_agent/   # application code
+  agent/                      # LangGraph graph, prompt, request trace
+  tools/                      # classifier queries and PubMed search
+  mcp/                        # in-process PubMed MCP server
+  api/                        # FastAPI
+tests/
+  fixtures/                   # expected JSON
+  unit/                       # individual functions
+  integration/                # API, tool calls, MCP lifecycle
+  evals/                      # representative evidence checks
 docs/
   architecture.md
-  examples/              # committed question/tool-call examples
-tests/
-  fixtures/              # expected JSON checked by pytest
-logs/                    # runtime traces; ignored by Git
+  examples/                   # reviewed examples for the repository
+scripts/
+  run_examples.py             # posts the fixed questions; writes outputs/examples
+outputs/                      # generated example runs; ignored by Git
+logs/                         # runtime traces; ignored by Git
 ```
 
-See `docs/architecture.md` for the request path. The four worked examples are in `docs/examples/`.
+See `docs/architecture.md` for the request path. The worked examples are in `docs/examples/`.
+
+To refresh them, start the server and run `python scripts/run_examples.py`. Review `outputs/examples/`, then copy the cases you want into `docs/examples/`.
 
 ## Getting started
 
@@ -59,6 +64,7 @@ python3 -m venv venv
 source venv/bin/activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+pip install -e .
 cp .env.example .env
 ```
 
@@ -89,7 +95,10 @@ Memory is in-process (`MemorySaver`).
 
 ```bash
 pytest
+pytest tests/unit
+pytest tests/integration
+pytest tests/evals
 ```
 
-Dataset tests read the sibling checkout when those parquet files are present
+Integration and eval tests read the sibling checkout when those parquet files are present
 and skip otherwise.

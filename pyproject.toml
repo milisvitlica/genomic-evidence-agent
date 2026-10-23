@@ -25,7 +25,9 @@ dependencies = [
 dev = ["pytest"]
 
 [tool.setuptools.packages.find]
+where = ["src"]
 include = ["genomic_evidence_agent*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]

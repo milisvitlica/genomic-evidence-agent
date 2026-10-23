@@ -1,9 +1,7 @@
-from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from genomic_evidence_agent.agent.trace import ToolTiming, log_rejected, log_trace, trace_messages
-from genomic_evidence_agent.api.app import create_app, message_text
-from genomic_evidence_agent.config import get_settings
+from genomic_evidence_agent.api.app import message_text
 
 
 def test_trace_messages_records_calls_and_results():
@@ -97,37 +95,6 @@ def test_log_trace_appends_calls_to_the_trace_file(tmp_path):
     assert "Invalid control character at" in text
 
 
-def test_invalid_evidence_json_is_appended(tmp_path, monkeypatch):
-    destination = tmp_path / "trace-examples.log"
-    monkeypatch.setattr("genomic_evidence_agent.agent.trace.TRACE_LOG", destination)
-    get_settings.cache_clear()
-    with TestClient(create_app()) as client:
-        response = client.post(
-            "/evidence",
-            content='{"question": "be\nnign"}',
-            headers={"content-type": "application/json"},
-        )
-    assert response.status_code == 422
-    text = destination.read_text(encoding="utf-8")
-    assert "rejected" in text
-    assert "Invalid control character" in text
-
-
 def test_message_text_flattens_blocks():
     assert message_text("plain") == "plain"
     assert message_text([{"type": "text", "text": "hello"}]) == "hello"
-
-
-def test_health_lists_three_tools():
-    get_settings.cache_clear()
-    with TestClient(create_app()) as client:
-        response = client.get("/health")
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "ok"
-    assert body["tools"] == ["query_joined_dataset", "query_scored_vus", "search_pubmed"]
-    assert body["pubmed_mcp"]["transport"] == "in-process"
-    assert body["pubmed_mcp"]["error"] is None
-    tables = body["tables"]
-    assert tables["clinvar_uniprot_joined.parquet"]["exists"] is True
-    assert tables["vus_inference_predictions.parquet"]["exists"] is True

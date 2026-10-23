@@ -12,10 +12,11 @@ from uuid import UUID
 
 from langchain_core.callbacks import BaseCallbackHandler
 
+from genomic_evidence_agent.config import repo_root
+
 logger = logging.getLogger("genomic_evidence_agent.trace")
 
-# genomic_evidence_agent/agent/trace.py -> repository root is parents[2].
-TRACE_LOG = Path(__file__).resolve().parents[2] / "logs" / "trace.log"
+TRACE_LOG = repo_root() / "logs" / "trace.log"
 _WRITE_LOCK = threading.Lock()
 
 

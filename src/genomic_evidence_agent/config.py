@@ -9,18 +9,23 @@ from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# genomic_evidence_agent/config.py -> repository root is parents[1].
-_PACKAGE_ROOT = Path(__file__).resolve().parents[1]
+# src/genomic_evidence_agent/config.py -> repository root is parents[2].
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 # The OpenAI client reads OPENAI_API_KEY from the process environment.
 # pydantic-settings loads .env into Settings only, so export it here too.
-load_dotenv(_PACKAGE_ROOT / ".env")
+load_dotenv(_REPO_ROOT / ".env")
+
+
+def repo_root() -> Path:
+    """Directory that contains pyproject.toml, docs/, logs/, and outputs/."""
+    return _REPO_ROOT
 
 
 def default_classifier_root() -> Path:
     """Prefer the sibling clinvar-pathogenicity-classifier checkout."""
     candidates = [
         Path.cwd().parent / "clinvar-pathogenicity-classifier",
-        _PACKAGE_ROOT.parent / "clinvar-pathogenicity-classifier",
+        _REPO_ROOT.parent / "clinvar-pathogenicity-classifier",
     ]
     for candidate in candidates:
         if candidate.is_dir():

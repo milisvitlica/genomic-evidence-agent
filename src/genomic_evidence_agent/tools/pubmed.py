@@ -1,19 +1,14 @@
-"""PubMed search and its LangChain tool.
+"""PubMed search.
 
 NCBI E-utilities return article metadata only. The in-process MCP server in
-``mcp/pubmed_server.py`` calls ``search_pubmed``; ``build_pubmed_tool`` is the
-same search wrapped as a LangChain tool.
+``mcp/pubmed_server.py`` exposes ``search_pubmed`` to the agent.
 """
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
 import httpx
-from langchain_core.tools import tool
-
-from genomic_evidence_agent.config import Settings
 
 ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 ESUMMARY_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
@@ -95,24 +90,3 @@ def search_pubmed(
         if owns_client:
             http.close()
     return {"query": text, "n_results": len(articles), "articles": articles}
-
-
-def build_pubmed_tool(settings: Settings):
-    """LangChain tool for ``search_pubmed``. The agent loads the MCP tool instead."""
-
-    @tool("search_pubmed")
-    def search_pubmed_tool(query: str, max_results: int = DEFAULT_MAX_RESULTS) -> str:
-        """Search PubMed and return PMID, title, authors, journal, date, and DOI.
-
-        query uses PubMed syntax (gene symbols, variant names, Boolean operators).
-        This returns article metadata only. It does not download full text.
-        """
-        payload = search_pubmed(
-            query,
-            max_results=max_results,
-            api_key=settings.ncbi_api_key,
-            email=settings.ncbi_email,
-        )
-        return json.dumps(payload)
-
-    return search_pubmed_tool
