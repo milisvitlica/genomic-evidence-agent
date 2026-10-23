@@ -14,7 +14,14 @@ from fastapi.responses import FileResponse
 
 from genomic_evidence_agent.agent.graph import EvidenceAgent, build_evidence_agent
 from genomic_evidence_agent.agent.trace import ToolTiming, log_rejected, log_trace, trace_messages
-from genomic_evidence_agent.api.schemas import EvidenceRequest, EvidenceResponse, HealthResponse
+from genomic_evidence_agent.api.schemas import (
+    EvidenceRequest,
+    EvidenceResponse,
+    HealthResponse,
+    SaveExampleRequest,
+    SaveExampleResponse,
+)
+from genomic_evidence_agent.tools.examples import save_conversation
 from genomic_evidence_agent.config import get_settings
 
 PAGE = Path(__file__).resolve().parent / "static" / "index.html"
@@ -78,6 +85,17 @@ def create_app() -> FastAPI:
                 "error": runtime.pubmed_error,
             },
         )
+
+    @app.post("/examples", response_model=SaveExampleResponse)
+    async def save_example(body: SaveExampleRequest) -> SaveExampleResponse:
+        runtime: EvidenceAgent = app.state.runtime
+        snapshot = await runtime.graph.aget_state({"configurable": {"thread_id": body.thread_id}})
+        messages = (snapshot.values or {}).get("messages") or []
+        try:
+            path = save_conversation(messages)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return SaveExampleResponse(path=path)
 
     @app.post("/evidence", response_model=EvidenceResponse)
     async def evidence(body: EvidenceRequest) -> EvidenceResponse:

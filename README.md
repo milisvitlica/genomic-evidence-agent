@@ -1,10 +1,11 @@
 # Genomic Evidence Agent
 
-Research assistant that answers questions about human variants by calling three tools.
+Research assistant that answers questions about human variants by calling tools.
 Two read processed tables from
 [clinvar-pathogenicity-classifier](../clinvar-pathogenicity-classifier).
-The third searches PubMed through an in-process MCP server. A LangGraph agent
-decides which tool to call. FastAPI exposes the agent over HTTP.
+Another searches PubMed through an in-process MCP server. A LangGraph agent
+decides which tool to call. FastAPI exposes the agent over HTTP. The page can
+save the current chat to `docs/examples/saved_examples/` without asking the agent.
 
 This is research support. It does not produce a clinical classification.
 

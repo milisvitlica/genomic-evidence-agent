@@ -23,6 +23,6 @@ The classifier checkout is a sibling project. This service reads its processed t
 
 ## What is committed
 
-`docs/examples/` records each saved run as the question, the evidence returned, the agent's final answer, and the limitations. `tests/fixtures/` holds the small JSON files the tests compare against. `tests/unit/` covers individual functions. `tests/integration/` covers the API, classifier tool calls, and the PubMed MCP lifecycle. `tests/evals/` checks a few representative records against expected evidence. `logs/` and `outputs/` stay out of Git.
+`docs/examples/` records each reviewed run as the question, the evidence returned, the agent's final answer, and the limitations. The page button **Save example** posts the current `thread_id` to `POST /examples`. That writes a new file under `docs/examples/saved_examples/` from the stored messages. The agent does not choose when to save. That folder is gitignored. `tests/fixtures/` holds the small JSON files the tests compare against. `tests/unit/` covers individual functions. `tests/integration/` covers the API, classifier tool calls, and the PubMed MCP lifecycle. `tests/evals/` checks a few representative records against expected evidence. `logs/` and `outputs/` stay out of Git.
 
 `scripts/run_examples.py` posts a fixed question list to a running server and writes each response under `outputs/examples/`. Review those drafts, then copy the cases you want into `docs/examples/` and write the limitations there. The script does not edit the committed examples.

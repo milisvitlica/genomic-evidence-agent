@@ -123,12 +123,12 @@
 
     .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 
-    .examples button, #new-thread, #ask button[type="submit"] {
+    .examples button, #new-thread, #save-example, #ask button[type="submit"] {
       font: inherit;
       cursor: pointer;
     }
 
-    .examples button, #new-thread {
+    .examples button, #new-thread, #save-example {
       border: 1px solid var(--line);
       background: transparent;
       color: var(--ink);
@@ -175,7 +175,7 @@
     <main>
       <section id="transcript" aria-live="polite">
         <div class="empty" id="empty">
-          <p class="hint">Ask about a ClinVar variant, a scored VUS, or a PubMed search. A follow-up stays on the same conversation until you start a new one.</p>
+          <p class="hint">Ask about a ClinVar variant, a scored VUS, or a PubMed search. A follow-up stays on the same conversation until you start a new one. Save example writes this conversation to docs/examples/saved_examples. The agent does not choose when to save.</p>
         </div>
       </section>
       <form id="ask">
@@ -188,8 +188,10 @@
         </div>
         <div class="actions">
           <button type="submit" id="submit">Ask</button>
+          <button type="button" id="save-example" disabled>Save example</button>
           <button type="button" id="new-thread">New conversation</button>
           <span class="thread" id="thread"></span>
+          <span class="thread" id="saved"></span>
         </div>
       </form>
       <p class="note">Labels and scores come from the classifier tables and PubMed metadata. This page does not produce a clinical classification.</p>
@@ -201,13 +203,18 @@
     const transcript = document.querySelector("#transcript");
     const empty = document.querySelector("#empty");
     const submit = document.querySelector("#submit");
+    const save = document.querySelector("#save-example");
     const threadLabel = document.querySelector("#thread");
+    const savedLabel = document.querySelector("#saved");
     const status = document.querySelector("#status");
     let threadId = null;
+    let busy = false;
 
-    function setBusy(busy) {
-      submit.disabled = busy;
-      submit.textContent = busy ? "Looking up evidence…" : "Ask";
+    function setBusy(isBusy) {
+      busy = isBusy;
+      submit.disabled = isBusy;
+      submit.textContent = isBusy ? "Looking up evidence…" : "Ask";
+      save.disabled = isBusy || !threadId;
     }
 
     function showThread() {
@@ -268,12 +275,10 @@
       return turn;
     }
 
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const question = questionBox.value.trim();
-      if (!question || submit.disabled) return;
+    async function ask(question, clearDraft) {
+      if (!question || busy) return;
       const turn = addTurn(question);
-      questionBox.value = "";
+      if (clearDraft) questionBox.value = "";
       setBusy(true);
       const payload = { question };
       if (threadId) payload.thread_id = threadId;
@@ -300,10 +305,40 @@
         setBusy(false);
         questionBox.focus();
       }
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      ask(questionBox.value.trim(), true);
+    });
+
+    save.addEventListener("click", async () => {
+      if (!threadId || busy) return;
+      setBusy(true);
+      savedLabel.textContent = "Saving…";
+      try {
+        const response = await fetch("/examples", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ thread_id: threadId }),
+        });
+        const body = await response.json();
+        if (!response.ok) {
+          const detail = body.detail || response.statusText;
+          savedLabel.textContent = typeof detail === "string" ? detail : "Could not save this conversation.";
+          return;
+        }
+        savedLabel.textContent = body.path;
+      } catch (error) {
+        savedLabel.textContent = "Could not save this conversation.";
+      } finally {
+        setBusy(false);
+      }
     });
 
     document.querySelector("#new-thread").addEventListener("click", () => {
       threadId = null;
+      savedLabel.textContent = "";
       showThread();
       transcript.replaceChildren(empty);
       empty.hidden = false;

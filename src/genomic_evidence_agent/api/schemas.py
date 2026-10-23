@@ -25,6 +25,14 @@ class EvidenceResponse(BaseModel):
     trace: list[TraceEvent] = Field(default_factory=list)
 
 
+class SaveExampleRequest(BaseModel):
+    thread_id: str = Field(min_length=1, description="Conversation to write as an example file.")
+
+
+class SaveExampleResponse(BaseModel):
+    path: str
+
+
 class HealthResponse(BaseModel):
     status: str
     model: str

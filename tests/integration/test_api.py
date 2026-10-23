@@ -28,9 +28,10 @@ def test_home_page_is_served():
     assert "text/html" in response.headers["content-type"]
     assert "Genomic evidence" in response.text
     assert 'id="ask"' in response.text
+    assert 'id="save-example"' in response.text
 
 
-def test_health_lists_three_tools():
+def test_health_lists_tools():
     get_settings.cache_clear()
     with TestClient(create_app()) as client:
         response = client.get("/health")

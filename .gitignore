@@ -25,10 +25,11 @@ htmlcov/
 # Jupyter
 .ipynb_checkpoints/
 
-# Local data and generated files. docs/examples are committed by hand.
+# Local data and generated files. Reviewed docs/examples are committed by hand.
 data/
 logs/
 outputs/
+docs/examples/saved_examples/
 
 # OS
 .DS_Store
