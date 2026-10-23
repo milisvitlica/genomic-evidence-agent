@@ -1,20 +1,25 @@
-"""PubMed search.
+"""PubMed search and article details.
 
-NCBI E-utilities return article metadata only. The in-process MCP server in
-``mcp/pubmed_server.py`` exposes ``search_pubmed`` to the agent.
+NCBI E-utilities supply citation metadata. ``get_article_details`` also returns
+the abstract. The in-process MCP server in ``mcp/pubmed_server.py`` exposes
+both functions to the agent. Neither tool downloads full text.
 """
 
 from __future__ import annotations
 
+import re
 from typing import Any
+from xml.etree import ElementTree
 
 import httpx
 
 ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 ESUMMARY_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
+EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 TOOL_NAME = "genomic-evidence-agent"
 DEFAULT_MAX_RESULTS = 8
 MAX_RESULTS = 20
+_PMID = re.compile(r"\d{1,9}")
 
 
 def parse_pubmed_summary(payload: dict[str, Any], pmids: list[str]) -> list[dict[str, Any]]:
@@ -48,6 +53,115 @@ def parse_pubmed_summary(payload: dict[str, Any], pmids: list[str]) -> list[dict
     return articles
 
 
+def normalize_pmid(pmid: str) -> str | None:
+    """Return the first PMID digit group, or None when the text has no PMID."""
+    match = _PMID.search(pmid.strip())
+    return match.group(0) if match else None
+
+
+def parse_pubmed_article(xml_text: str, pmid: str) -> dict[str, Any] | None:
+    """Turn one PubMed efetch XML record into metadata plus the abstract."""
+    root = ElementTree.fromstring(xml_text)
+    article = root.find(".//{*}PubmedArticle")
+    if article is None:
+        return None
+    authors: list[str] = []
+    for author in article.findall(".//{*}AuthorList/{*}Author"):
+        collective = _text(author.find("{*}CollectiveName"))
+        if collective:
+            authors.append(collective)
+            continue
+        name = " ".join(
+            part
+            for part in (_text(author.find("{*}LastName")), _text(author.find("{*}ForeName")))
+            if part
+        )
+        if name:
+            authors.append(name)
+    abstract_parts: list[str] = []
+    for node in article.findall(".//{*}Abstract/{*}AbstractText"):
+        text = "".join(node.itertext()).strip()
+        if not text:
+            continue
+        label = (node.attrib.get("Label") or "").strip()
+        abstract_parts.append(f"{label}: {text}" if label else text)
+    doi = None
+    for node in article.findall(".//{*}ArticleId"):
+        if node.attrib.get("IdType") == "doi" and _text(node):
+            doi = _text(node)
+            break
+    return {
+        "pmid": pmid,
+        "title": _text(article.find(".//{*}ArticleTitle")),
+        "journal": _text(article.find(".//{*}Journal/{*}ISOAbbreviation"))
+        or _text(article.find(".//{*}Journal/{*}Title")),
+        "pubdate": _pubdate(article.find(".//{*}JournalIssue/{*}PubDate")),
+        "authors": authors[:20],
+        "doi": doi,
+        "abstract": "\n\n".join(abstract_parts) or None,
+    }
+
+
+def get_article_details(
+    pmid: str,
+    *,
+    api_key: str | None = None,
+    email: str | None = None,
+    client: httpx.Client | None = None,
+) -> dict[str, Any]:
+    """Fetch metadata and the abstract for one PMID. Full text is not fetched."""
+    cleaned = normalize_pmid(pmid)
+    if not cleaned:
+        return {"error": "Provide a PubMed PMID."}
+    owns_client = client is None
+    http = client or httpx.Client(timeout=30)
+    try:
+        response = http.get(
+            EFETCH_URL,
+            params={**_ncbi_params(api_key, email), "db": "pubmed", "id": cleaned, "retmode": "xml"},
+        )
+        response.raise_for_status()
+        try:
+            article = parse_pubmed_article(response.text, cleaned)
+        except ElementTree.ParseError:
+            return {"error": "PubMed returned an unreadable record.", "pmid": cleaned}
+    except httpx.HTTPError as exc:
+        return {"error": f"PubMed request failed: {exc}", "pmid": cleaned}
+    finally:
+        if owns_client:
+            http.close()
+    if article is None:
+        return {"error": f"No PubMed record for PMID {cleaned}.", "pmid": cleaned}
+    return article
+
+
+def _ncbi_params(api_key: str | None, email: str | None) -> dict[str, Any]:
+    params: dict[str, Any] = {"tool": TOOL_NAME}
+    if email:
+        params["email"] = email
+    if api_key:
+        params["api_key"] = api_key
+    return params
+
+
+def _text(node: ElementTree.Element | None) -> str | None:
+    if node is None:
+        return None
+    text = "".join(node.itertext()).strip()
+    return text or None
+
+
+def _pubdate(node: ElementTree.Element | None) -> str | None:
+    if node is None:
+        return None
+    medline = _text(node.find("{*}MedlineDate"))
+    if medline:
+        return medline
+    parts = [_text(node.find(f"{{*}}{name}")) for name in ("Year", "Month", "Day")]
+    date = " ".join(part for part in parts if part)
+    return date or None
+
+
 def search_pubmed(
     query: str,
     *,
@@ -61,11 +175,7 @@ def search_pubmed(
     if not text:
         return {"error": "Provide a PubMed query."}
     retmax = max(1, min(int(max_results), MAX_RESULTS))
-    common: dict[str, Any] = {"tool": TOOL_NAME, "retmode": "json"}
-    if email:
-        common["email"] = email
-    if api_key:
-        common["api_key"] = api_key
+    common = {**_ncbi_params(api_key, email), "retmode": "json"}
 
     owns_client = client is None
     http = client or httpx.Client(timeout=30)

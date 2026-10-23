@@ -1,7 +1,7 @@
 """Compile the evidence agent as a LangGraph graph.
 
-The graph has three tools: two local dataset queries, and PubMed search loaded
-from an in-process MCP server.
+The graph has four tools: two local dataset queries, plus PubMed search and
+article details loaded from an in-process MCP server.
 """
 
 from __future__ import annotations

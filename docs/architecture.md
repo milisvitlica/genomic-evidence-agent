@@ -1,6 +1,6 @@
 # Architecture
 
-The browser page at `/` posts a question to `POST /evidence`. FastAPI hands it to a LangGraph agent. The agent calls one or more tools, then writes the answer. The page shows that answer and the tool trace, and sends the returned `thread_id` on the next question. `GET /health` reports whether the two classifier tables and the PubMed tool loaded. It does not call the model.
+The browser page at `/` posts a question to `POST /evidence`. FastAPI hands it to a LangGraph agent. The agent calls one or more tools, then writes the answer. The page shows that answer and the tool trace, and sends the returned `thread_id` on the next question. `GET /health` reports whether the two classifier tables and the PubMed tools loaded. It does not call the model.
 
 ## Request path
 
@@ -16,8 +16,9 @@ The browser page at `/` posts a question to `POST /evidence`. FastAPI hands it t
 | `query_joined_dataset` | `tools/classifier.py` | `clinvar_uniprot_joined.parquet` |
 | `query_scored_vus` | `tools/classifier.py` | `vus_inference_predictions.parquet` |
 | `search_pubmed` | `tools/pubmed.py`, served by `mcp/pubmed_server.py` | NCBI E-utilities |
+| `get_article_details` | `tools/pubmed.py`, served by `mcp/pubmed_server.py` | NCBI E-utilities, including the abstract |
 
-`tools/pubmed.py` holds the NCBI search. `mcp/pubmed_server.py` exposes that function as an in-process FastMCP server, and `MCPAdapter` turns it into the tool the graph calls. Each call opens its own MCP session, so the tool still works after the adapter used at startup has closed.
+`tools/pubmed.py` holds the NCBI search and the single-PMID lookup. `mcp/pubmed_server.py` exposes both functions as an in-process FastMCP server, and `MCPAdapter` turns them into the tools the graph calls. Each call opens its own MCP session, so the tool still works after the adapter used at startup has closed.
 
 The classifier checkout is a sibling project. This service reads its processed tables. It does not reload the CatBoost model. A VUS `pred_label` is the stored probability compared with the saved Youden threshold.
 

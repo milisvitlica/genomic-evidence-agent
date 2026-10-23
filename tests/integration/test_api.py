@@ -38,7 +38,12 @@ def test_health_lists_tools():
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok"
-    assert body["tools"] == ["query_joined_dataset", "query_scored_vus", "search_pubmed"]
+    assert body["tools"] == [
+        "query_joined_dataset",
+        "query_scored_vus",
+        "search_pubmed",
+        "get_article_details",
+    ]
     assert body["pubmed_mcp"]["transport"] == "in-process"
     assert body["pubmed_mcp"]["error"] is None
     tables = body["tables"]

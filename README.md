@@ -16,12 +16,14 @@ This is research support. It does not produce a clinical classification.
 | `query_joined_dataset` | `data/processed/clinvar_uniprot_joined.parquet` |
 | `query_scored_vus` | `data/processed/vus_inference_predictions.parquet` |
 | `search_pubmed` | In-process MCP server calling NCBI E-utilities |
+| `get_article_details` | Same MCP server; metadata and abstract for one PMID |
 
 The joined table is the classifier's ClinVar–UniProt gene-level join (expert-reviewed
 pathogenic and benign variants). The scored VUS table is the stored CatBoost
 output: probability, Youden threshold, and `pred_label`. This service does not
 reload the model. PubMed search returns article metadata (PMID, title, authors,
 journal, date, DOI) so a later ranking step can reorder those hits.
+`get_article_details` adds the abstract for one of those PMIDs.
 
 ## Stack
 

@@ -1,7 +1,7 @@
 """In-process PubMed MCP server.
 
-The search itself lives in ``tools/pubmed.py``. This module exposes that
-function through FastMCP and adapts the resulting tool for the LangGraph agent.
+The PubMed functions live in ``tools/pubmed.py``. This module exposes them
+through FastMCP and adapts the resulting tools for the LangGraph agent.
 """
 
 from __future__ import annotations
@@ -11,11 +11,11 @@ from typing import Any
 from fastmcp import FastMCP
 
 from genomic_evidence_agent.config import Settings
-from genomic_evidence_agent.tools.pubmed import DEFAULT_MAX_RESULTS, search_pubmed
+from genomic_evidence_agent.tools.pubmed import DEFAULT_MAX_RESULTS, get_article_details, search_pubmed
 
 
 def build_pubmed_server(settings: Settings) -> FastMCP:
-    """MCP server with a single literature-search tool."""
+    """MCP server with PubMed search and one-article details."""
     server = FastMCP("pubmed")
 
     @server.tool(name="search_pubmed")
@@ -33,11 +33,24 @@ def build_pubmed_server(settings: Settings) -> FastMCP:
             email=settings.ncbi_email,
         )
 
+    @server.tool(name="get_article_details")
+    def get_article_details_tool(pmid: str) -> dict[str, Any]:
+        """Retrieve PubMed metadata and the abstract for one PMID.
+
+        Use this after search_pubmed when a hit needs its abstract. pmid is the
+        PubMed identifier. This does not download the full text.
+        """
+        return get_article_details(
+            pmid,
+            api_key=settings.ncbi_api_key,
+            email=settings.ncbi_email,
+        )
+
     return server
 
 
 async def load_pubmed_tools(settings: Settings) -> list:
-    """Discover the PubMed MCP tool and return it as a LangChain tool."""
+    """Discover the PubMed MCP tools and return them as LangChain tools."""
     from langchain.mcp import MCPAdapter
 
     async with MCPAdapter(build_pubmed_server(settings)) as adapter:

@@ -5,11 +5,19 @@ from genomic_evidence_agent.config import Settings
 from genomic_evidence_agent.mcp.pubmed_server import load_pubmed_tools
 
 
-def test_pubmed_mcp_exposes_one_search_tool():
+def test_pubmed_mcp_exposes_search_and_article_details():
     settings = Settings(pubmed_mcp_enabled=True, ncbi_api_key=None, ncbi_email=None)
     tools = asyncio.run(load_pubmed_tools(settings))
-    assert [tool.name for tool in tools] == ["search_pubmed"]
-    schema = tools[0].args_schema
+    by_name = {tool.name: tool for tool in tools}
+    assert list(by_name) == ["search_pubmed", "get_article_details"]
+    search_schema = _schema(by_name["search_pubmed"])
+    details_schema = _schema(by_name["get_article_details"])
+    assert "query" in json.dumps(search_schema)
+    assert "pmid" in json.dumps(details_schema)
+
+
+def _schema(tool) -> object:
+    schema = tool.args_schema
     if hasattr(schema, "model_json_schema"):
-        schema = schema.model_json_schema()
-    assert "query" in json.dumps(schema)
+        return schema.model_json_schema()
+    return schema
