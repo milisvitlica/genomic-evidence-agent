@@ -114,4 +114,7 @@ pytest tests/evals
 ```
 
 Integration and eval tests read the sibling checkout when those parquet files are present
-and skip otherwise.
+and skip otherwise. `tests/evals/golden_cases.csv` holds the questions, expected tool
+calls, evidence fields, and answer checks. `pytest tests/evals` grades those without
+calling the model and writes `outputs/evals/report.md`. The first line is
+`n_passed / n_total`. That file is generated output, so it is not part of the README.
