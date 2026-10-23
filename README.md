@@ -3,7 +3,7 @@
 Research assistant that answers questions about human variants by calling tools.
 Two read processed tables from
 [clinvar-pathogenicity-classifier](../clinvar-pathogenicity-classifier).
-Another searches PubMed through an in-process MCP server. A LangGraph agent
+Another searches PubMed through a stdio MCP server. A LangGraph agent
 decides which tool to call. FastAPI exposes the agent over HTTP. The page can
 save the current chat to `docs/examples/saved_examples/` without asking the agent.
 
@@ -15,8 +15,8 @@ This is research support. It does not produce a clinical classification.
 | --- | --- |
 | `query_joined_dataset` | `data/processed/clinvar_uniprot_joined.parquet` |
 | `query_scored_vus` | `data/processed/vus_inference_predictions.parquet` |
-| `search_pubmed` | In-process MCP server calling NCBI E-utilities |
-| `get_article_details` | Same MCP server; metadata and abstract for one PMID |
+| `search_pubmed` | PubMed MCP server (`python -m genomic_evidence_agent.mcp`) |
+| `get_article_details` | Same server; metadata and abstract for one PMID |
 
 The joined table is the classifier's ClinVar–UniProt gene-level join (expert-reviewed
 pathogenic and benign variants). The scored VUS table is the stored CatBoost
@@ -25,12 +25,14 @@ reload the model. PubMed search returns article metadata (PMID, title, authors,
 journal, date, DOI) so a later ranking step can reorder those hits.
 `get_article_details` adds the abstract for one of those PMIDs.
 
+PubMed is the MCP server because the search is not tied to these tables: another agent can reuse it, and the server only wraps a public API (the NCBI key and rate limits are the sensitive part). Ranking, caching, and query logic can change there without changing the agent. It is also the concrete place to see tools, schemas, transports, and session lifecycle.
+
 ## Stack
 
 - **LangGraph** — `langchain.agents.create_agent` compiles the tool-calling graph.
 - **FastAPI** — a page at `/`, plus `GET /health` and `POST /evidence`.
-- **PubMed MCP** — a FastMCP server in this process, adapted with `langchain.mcp.MCPAdapter`.
-  NCBI is called with `httpx`. Node.js is not required.
+- **PubMed MCP** — a FastMCP server over stdio, adapted with `langchain.mcp.MCPAdapter`.
+  NCBI is called with `httpx`. Node.js is not required. The API keeps one session open.
 
 ## Layout
 
@@ -38,7 +40,7 @@ journal, date, DOI) so a later ranking step can reorder those hits.
 src/genomic_evidence_agent/   # application code
   agent/                      # LangGraph graph, prompt, request trace
   tools/                      # classifier queries and PubMed search
-  mcp/                        # in-process PubMed MCP server
+  mcp/                        # PubMed MCP server (stdio)
   api/                        # FastAPI and the browser page
 tests/
   fixtures/                   # expected JSON
@@ -83,7 +85,15 @@ Set `PUBMED_MCP_ENABLED=false` to run with the two dataset tools only.
 python -m uvicorn genomic_evidence_agent.api.app:app --host 127.0.0.1 --port 8000
 ```
 
-Open http://127.0.0.1:8000 to ask a question in the browser. A follow-up stays on the same conversation until you start a new one. `GET /health` lists the three tools and whether the classifier tables are on disk.
+Open http://127.0.0.1:8000 to ask a question in the browser. A follow-up stays on the same conversation until you start a new one. `GET /health` lists the loaded tools and whether the classifier tables are on disk.
+
+The same PubMed server can run on its own. From this environment:
+
+```bash
+python -m genomic_evidence_agent.mcp
+```
+
+It speaks MCP on stdin and stdout. The API launches that command when it starts. Another client can launch it too, with `NCBI_API_KEY` and `NCBI_EMAIL` in the environment when you have them.
 
 ```bash
 curl -s http://127.0.0.1:8000/evidence \

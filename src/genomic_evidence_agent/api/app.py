@@ -49,7 +49,10 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.runtime = await build_evidence_agent()
-        yield
+        try:
+            yield
+        finally:
+            await app.state.runtime.aclose()
 
     app = FastAPI(
         title="Genomic Evidence Agent",
@@ -81,7 +84,7 @@ def create_app() -> FastAPI:
             tools=runtime.tool_names,
             pubmed_mcp={
                 "enabled": get_settings().pubmed_mcp_enabled,
-                "transport": "in-process",
+                "transport": "stdio",
                 "error": runtime.pubmed_error,
             },
         )

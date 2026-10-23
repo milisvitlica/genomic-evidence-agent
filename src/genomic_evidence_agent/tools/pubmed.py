@@ -1,8 +1,8 @@
 """PubMed search and article details.
 
 NCBI E-utilities supply citation metadata. ``get_article_details`` also returns
-the abstract. The in-process MCP server in ``mcp/pubmed_server.py`` exposes
-both functions to the agent. Neither tool downloads full text.
+the abstract. ``python -m genomic_evidence_agent.mcp`` exposes both functions
+over stdio. Neither tool downloads full text.
 """
 
 from __future__ import annotations

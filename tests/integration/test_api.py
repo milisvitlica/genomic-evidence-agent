@@ -44,7 +44,7 @@ def test_health_lists_tools():
         "search_pubmed",
         "get_article_details",
     ]
-    assert body["pubmed_mcp"]["transport"] == "in-process"
+    assert body["pubmed_mcp"]["transport"] == "stdio"
     assert body["pubmed_mcp"]["error"] is None
     tables = body["tables"]
     assert tables["clinvar_uniprot_joined.parquet"]["exists"] is True
