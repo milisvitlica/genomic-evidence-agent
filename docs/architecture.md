@@ -1,6 +1,6 @@
 # Architecture
 
-A question arrives at `POST /evidence`. FastAPI hands it to a LangGraph agent. The agent calls one or more tools, then writes the answer. `GET /health` reports whether the two classifier tables and the PubMed tool loaded. It does not call the model.
+The browser page at `/` posts a question to `POST /evidence`. FastAPI hands it to a LangGraph agent. The agent calls one or more tools, then writes the answer. The page shows that answer and the tool trace, and sends the returned `thread_id` on the next question. `GET /health` reports whether the two classifier tables and the PubMed tool loaded. It does not call the model.
 
 ## Request path
 

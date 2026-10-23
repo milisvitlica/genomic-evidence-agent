@@ -28,6 +28,9 @@ dev = ["pytest"]
 where = ["src"]
 include = ["genomic_evidence_agent*"]
 
+[tool.setuptools.package-data]
+genomic_evidence_agent = ["api/static/*.html"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]

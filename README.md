@@ -25,7 +25,7 @@ journal, date, DOI) so a later ranking step can reorder those hits.
 ## Stack
 
 - **LangGraph** — `langchain.agents.create_agent` compiles the tool-calling graph.
-- **FastAPI** — `GET /health` and `POST /evidence`.
+- **FastAPI** — a page at `/`, plus `GET /health` and `POST /evidence`.
 - **PubMed MCP** — a FastMCP server in this process, adapted with `langchain.mcp.MCPAdapter`.
   NCBI is called with `httpx`. Node.js is not required.
 
@@ -36,7 +36,7 @@ src/genomic_evidence_agent/   # application code
   agent/                      # LangGraph graph, prompt, request trace
   tools/                      # classifier queries and PubMed search
   mcp/                        # in-process PubMed MCP server
-  api/                        # FastAPI
+  api/                        # FastAPI and the browser page
 tests/
   fixtures/                   # expected JSON
   unit/                       # individual functions
@@ -80,7 +80,7 @@ Set `PUBMED_MCP_ENABLED=false` to run with the two dataset tools only.
 python -m uvicorn genomic_evidence_agent.api.app:app --host 127.0.0.1 --port 8000
 ```
 
-`GET /health` lists the three tools and whether the classifier tables are on disk.
+Open http://127.0.0.1:8000 to ask a question in the browser. A follow-up stays on the same conversation until you start a new one. `GET /health` lists the three tools and whether the classifier tables are on disk.
 
 ```bash
 curl -s http://127.0.0.1:8000/evidence \

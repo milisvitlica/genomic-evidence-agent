@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Genomic evidence</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f3efe6;
+      --ink: #1c1915;
+      --muted: #5c564c;
+      --line: #d9d1c3;
+      --card: #fffdf8;
+      --accent: #1f4d3a;
+      --accent-ink: #f6f3ec;
+      --warn: #8a3b2a;
+      --mono: "IBM Plex Mono", "Source Code Pro", ui-monospace, monospace;
+      --sans: "Source Serif 4", "Iowan Old Style", Palatino, Georgia, serif;
+      --ui: "Avenir Next", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--ui);
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .wrap {
+      width: min(820px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: flex-end;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--sans);
+      font-size: 2rem;
+      font-weight: 560;
+      letter-spacing: -0.02em;
+    }
+
+    .kicker, .status, .thread, .hint, .meta {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .kicker { margin: 0 0 4px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    .status { max-width: 280px; text-align: right; }
+
+    main { margin-top: 22px; }
+
+    #transcript { display: flex; flex-direction: column; gap: 16px; min-height: 180px; }
+
+    .turn, .empty {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+
+    .question {
+      margin: 0;
+      font-family: var(--sans);
+      font-size: 1.15rem;
+    }
+
+    .answer { white-space: pre-wrap; margin: 12px 0 0; }
+
+    .error { color: var(--warn); margin: 12px 0 0; }
+
+    details { margin-top: 12px; }
+
+    summary { cursor: pointer; color: var(--accent); }
+
+    pre {
+      overflow: auto;
+      max-height: 280px;
+      margin: 8px 0 0;
+      padding: 10px 12px;
+      background: #f7f4ee;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+
+    .tool-name { font-family: var(--mono); font-size: 0.82rem; }
+
+    form { margin-top: 18px; }
+
+    label { display: block; margin-bottom: 6px; font-size: 0.82rem; color: var(--muted); }
+
+    textarea {
+      width: 100%;
+      min-height: 96px;
+      resize: vertical;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--ink);
+      font: inherit;
+    }
+
+    textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+    .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+    .examples button, #new-thread, #ask button[type="submit"] {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .examples button, #new-thread {
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 6px 12px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    #ask button[type="submit"] {
+      border: 0;
+      background: var(--accent);
+      color: var(--accent-ink);
+      border-radius: 8px;
+      padding: 10px 16px;
+    }
+
+    button:disabled { opacity: 0.55; cursor: progress; }
+
+    .note { margin: 28px 0 0; color: var(--muted); font-size: 0.82rem; }
+
+    @media (max-width: 640px) {
+      header { flex-direction: column; align-items: flex-start; }
+      .status { max-width: none; text-align: left; }
+      h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <p class="kicker">Research support</p>
+        <h1>Genomic evidence</h1>
+      </div>
+      <p class="status" id="status">Checking tools…</p>
+    </header>
+    <main>
+      <section id="transcript" aria-live="polite">
+        <div class="empty" id="empty">
+          <p class="hint">Ask about a ClinVar variant, a scored VUS, or a PubMed search. A follow-up stays on the same conversation until you start a new one.</p>
+        </div>
+      </section>
+      <form id="ask">
+        <label for="question">Question</label>
+        <textarea id="question" name="question" required placeholder="What does the joined table say about VariationID 7884?"></textarea>
+        <div class="examples">
+          <button type="button" data-question="What does the joined classifier table say about ClinVar VariationID 7884?">VariationID 7884</button>
+          <button type="button" data-question="What score does the scored VUS table give VariationID 292?">Scored VUS 292</button>
+          <button type="button" data-question="Find PubMed articles about ABCA4 Val2050Leu.">ABCA4 literature</button>
+        </div>
+        <div class="actions">
+          <button type="submit" id="submit">Ask</button>
+          <button type="button" id="new-thread">New conversation</button>
+          <span class="thread" id="thread"></span>
+        </div>
+      </form>
+      <p class="note">Labels and scores come from the classifier tables and PubMed metadata. This page does not produce a clinical classification.</p>
+    </main>
+  </div>
+  <script>
+    const form = document.querySelector("#ask");
+    const questionBox = document.querySelector("#question");
+    const transcript = document.querySelector("#transcript");
+    const empty = document.querySelector("#empty");
+    const submit = document.querySelector("#submit");
+    const threadLabel = document.querySelector("#thread");
+    const status = document.querySelector("#status");
+    let threadId = null;
+
+    function setBusy(busy) {
+      submit.disabled = busy;
+      submit.textContent = busy ? "Looking up evidence…" : "Ask";
+    }
+
+    function showThread() {
+      threadLabel.textContent = threadId ? `Conversation ${threadId.slice(0, 8)}` : "";
+    }
+
+    async function loadHealth() {
+      try {
+        const response = await fetch("/health");
+        const body = await response.json();
+        const tools = (body.tools || []).join(", ");
+        const pubmed = body.pubmed_mcp && body.pubmed_mcp.error
+          ? `PubMed unavailable: ${body.pubmed_mcp.error}`
+          : "PubMed loaded";
+        status.textContent = response.ok ? `${tools}. ${pubmed}.` : "Health check failed.";
+      } catch (error) {
+        status.textContent = "Could not reach /health.";
+      }
+    }
+
+    function pretty(value) {
+      if (!value) return "";
+      try {
+        return JSON.stringify(JSON.parse(value), null, 2);
+      } catch (error) {
+        return String(value);
+      }
+    }
+
+    function renderTrace(trace) {
+      const calls = trace.filter((event) => event.type === "tool_call");
+      const results = trace.filter((event) => event.type === "tool_result");
+      if (!calls.length && !results.length) return "";
+      const blocks = results.map((result, index) => {
+        const call = calls[index] || {};
+        const name = result.name || call.name || "tool";
+        const args = JSON.stringify(call.args || {}, null, 2);
+        return `<p class="tool-name">${name}</p><pre>${escapeHtml(args)}\n\n${escapeHtml(pretty(result.content))}</pre>`;
+      }).join("");
+      return `<details><summary>Evidence returned</summary>${blocks}</details>`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function addTurn(question) {
+      empty.hidden = true;
+      const turn = document.createElement("article");
+      turn.className = "turn";
+      turn.innerHTML = `<p class="question"></p><p class="meta">Waiting for the agent…</p>`;
+      turn.querySelector(".question").textContent = question;
+      transcript.append(turn);
+      turn.scrollIntoView({ block: "nearest" });
+      return turn;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const question = questionBox.value.trim();
+      if (!question || submit.disabled) return;
+      const turn = addTurn(question);
+      questionBox.value = "";
+      setBusy(true);
+      const payload = { question };
+      if (threadId) payload.thread_id = threadId;
+      try {
+        const response = await fetch("/evidence", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const body = await response.json();
+        if (!response.ok) {
+          const detail = body.detail || response.statusText;
+          turn.querySelector(".meta").outerHTML = `<p class="error">${escapeHtml(typeof detail === "string" ? detail : JSON.stringify(detail))}</p>`;
+          return;
+        }
+        threadId = body.thread_id;
+        showThread();
+        turn.querySelector(".meta").remove();
+        turn.insertAdjacentHTML("beforeend", `<p class="answer"></p>${renderTrace(body.trace || [])}`);
+        turn.querySelector(".answer").textContent = body.answer || "";
+      } catch (error) {
+        turn.querySelector(".meta").outerHTML = `<p class="error">The request did not finish. ${escapeHtml(error.message || "")}</p>`;
+      } finally {
+        setBusy(false);
+        questionBox.focus();
+      }
+    });
+
+    document.querySelector("#new-thread").addEventListener("click", () => {
+      threadId = null;
+      showThread();
+      transcript.replaceChildren(empty);
+      empty.hidden = false;
+      questionBox.focus();
+    });
+
+    document.querySelectorAll("[data-question]").forEach((button) => {
+      button.addEventListener("click", () => {
+        questionBox.value = button.dataset.question;
+        questionBox.focus();
+      });
+    });
+
+    loadHealth();
+  </script>
+</body>
+</html>

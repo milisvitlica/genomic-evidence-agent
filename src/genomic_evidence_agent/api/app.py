@@ -3,17 +3,21 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse
 
 from genomic_evidence_agent.agent.graph import EvidenceAgent, build_evidence_agent
 from genomic_evidence_agent.agent.trace import ToolTiming, log_rejected, log_trace, trace_messages
 from genomic_evidence_agent.api.schemas import EvidenceRequest, EvidenceResponse, HealthResponse
 from genomic_evidence_agent.config import get_settings
+
+PAGE = Path(__file__).resolve().parent / "static" / "index.html"
 
 
 def message_text(content: Any) -> str:
@@ -54,6 +58,10 @@ def create_app() -> FastAPI:
             detail = str((first.get("ctx") or {}).get("error") or first.get("msg") or "Request validation failed.")
             log_rejected(detail, body=exc.body)
         return await request_validation_exception_handler(request, exc)
+
+    @app.get("/", include_in_schema=False)
+    async def home() -> FileResponse:
+        return FileResponse(PAGE)
 
     @app.get("/health", response_model=HealthResponse)
     async def health() -> HealthResponse:

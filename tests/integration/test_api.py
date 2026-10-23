@@ -20,6 +20,16 @@ def test_invalid_evidence_json_is_appended(tmp_path, monkeypatch):
     assert "Invalid control character" in text
 
 
+def test_home_page_is_served():
+    get_settings.cache_clear()
+    with TestClient(create_app()) as client:
+        response = client.get("/")
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "Genomic evidence" in response.text
+    assert 'id="ask"' in response.text
+
+
 def test_health_lists_three_tools():
     get_settings.cache_clear()
     with TestClient(create_app()) as client:
