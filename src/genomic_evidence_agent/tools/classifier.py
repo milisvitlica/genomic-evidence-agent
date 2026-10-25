@@ -108,21 +108,22 @@ def _cap(limit: int) -> int:
 class ClassifierCatalog:
     """Cached reader for the two classifier tables the agent is allowed to query."""
 
-    def __init__(self, root: Path):
-        self.root = Path(root)
-        self.processed = self.root / "data" / "processed"
+    def __init__(self, joined_dataset: Path, scored_vus: Path):
+        self.paths = {
+            JOINED_TABLE: Path(joined_dataset),
+            SCORED_VUS_TABLE: Path(scored_vus),
+        }
         self._frames: dict[str, pd.DataFrame] = {}
 
     def table_status(self) -> dict[str, dict[str, Any]]:
-        status: dict[str, dict[str, Any]] = {}
-        for name in (JOINED_TABLE, SCORED_VUS_TABLE):
-            path = self.processed / name
-            status[name] = {"path": str(path), "exists": path.is_file()}
-        return status
+        return {
+            name: {"path": str(path), "exists": path.is_file()}
+            for name, path in self.paths.items()
+        }
 
     def _load(self, name: str) -> pd.DataFrame:
         if name not in self._frames:
-            path = self.processed / name
+            path = self.paths[name]
             if not path.is_file():
                 raise FileNotFoundError(f"Missing classifier table: {path}")
             self._frames[name] = pd.read_parquet(path)

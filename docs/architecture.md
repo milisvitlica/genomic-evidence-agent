@@ -20,7 +20,7 @@ The browser page at `/` posts a question to `POST /evidence`. FastAPI hands it t
 
 `tools/pubmed.py` holds the NCBI search and the single-PMID lookup. `python -m genomic_evidence_agent.mcp` serves both as a FastMCP process over stdio. The API launches that command at startup and keeps the session open until shutdown, so a tool call reuses the process. Another MCP client can run the same command.
 
-The classifier checkout is a sibling project. This service reads its processed tables. It does not reload the CatBoost model. A VUS `pred_label` is the stored probability compared with the saved Youden threshold.
+`JOINED_DATASET` and `SCORED_VUS` are the two parquet files. This service reads them and does not reload the CatBoost model. A VUS `pred_label` is the stored probability compared with the saved Youden threshold.
 
 ## What is committed
 

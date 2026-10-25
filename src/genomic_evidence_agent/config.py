@@ -6,7 +6,6 @@ from functools import lru_cache
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # src/genomic_evidence_agent/config.py -> repository root is parents[2].
@@ -21,16 +20,20 @@ def repo_root() -> Path:
     return _REPO_ROOT
 
 
-def default_classifier_root() -> Path:
-    """Prefer the sibling clinvar-pathogenicity-classifier checkout."""
-    candidates = [
-        Path.cwd().parent / "clinvar-pathogenicity-classifier",
-        _REPO_ROOT.parent / "clinvar-pathogenicity-classifier",
-    ]
-    for candidate in candidates:
-        if candidate.is_dir():
-            return candidate.resolve()
-    return candidates[0]
+_DEFAULT_JOINED_DATASET = (
+    _REPO_ROOT.parent
+    / "clinvar-pathogenicity-classifier"
+    / "data"
+    / "processed"
+    / "clinvar_uniprot_joined.parquet"
+)
+_DEFAULT_SCORED_VUS = (
+    _REPO_ROOT.parent
+    / "clinvar-pathogenicity-classifier"
+    / "data"
+    / "processed"
+    / "vus_inference_predictions.parquet"
+)
 
 
 class Settings(BaseSettings):
@@ -40,7 +43,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    classifier_root: Path = Field(default_factory=default_classifier_root)
+    joined_dataset: Path = _DEFAULT_JOINED_DATASET
+    scored_vus: Path = _DEFAULT_SCORED_VUS
     model: str = "openai:gpt-4.1-mini"
 
     pubmed_mcp_enabled: bool = True

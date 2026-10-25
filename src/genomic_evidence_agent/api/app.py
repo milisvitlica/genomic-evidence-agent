@@ -79,7 +79,6 @@ def create_app() -> FastAPI:
         return HealthResponse(
             status="ok",
             model=runtime.model,
-            classifier_root=str(runtime.catalog.root),
             tables=runtime.catalog.table_status(),
             tools=runtime.tool_names,
             pubmed_mcp={

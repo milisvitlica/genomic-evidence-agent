@@ -36,7 +36,6 @@ class SaveExampleResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     model: str
-    classifier_root: str
     tables: dict[str, dict]
     tools: list[str]
     pubmed_mcp: dict[str, str | bool | None]

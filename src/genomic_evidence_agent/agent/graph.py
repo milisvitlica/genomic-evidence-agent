@@ -41,7 +41,7 @@ async def build_evidence_agent(settings: Settings | None = None) -> EvidenceAgen
     from langchain.agents import create_agent
 
     settings = settings or get_settings()
-    catalog = ClassifierCatalog(settings.classifier_root)
+    catalog = ClassifierCatalog(settings.joined_dataset, settings.scored_vus)
     tools = build_classifier_tools(catalog)
     pubmed_error: str | None = None
     pubmed_mcp: PubmedMcp | None = None
