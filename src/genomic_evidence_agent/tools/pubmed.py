@@ -136,6 +136,7 @@ def get_article_details(
 
 
 def _ncbi_params(api_key: str | None, email: str | None) -> dict[str, Any]:
+    """Common NCBI request parameters: the tool name plus the optional email and API key."""
     params: dict[str, Any] = {"tool": TOOL_NAME}
     if email:
         params["email"] = email
@@ -145,6 +146,7 @@ def _ncbi_params(api_key: str | None, email: str | None) -> dict[str, Any]:
 
 
 def _text(node: ElementTree.Element | None) -> str | None:
+    """Return all text inside an XML node, stripped, or None if it is missing or empty."""
     if node is None:
         return None
     text = "".join(node.itertext()).strip()
@@ -152,6 +154,7 @@ def _text(node: ElementTree.Element | None) -> str | None:
 
 
 def _pubdate(node: ElementTree.Element | None) -> str | None:
+    """Build a publication date string from MedlineDate, or from Year, Month, and Day."""
     if node is None:
         return None
     medline = _text(node.find("{*}MedlineDate"))

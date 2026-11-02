@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class EvidenceAgent:
+    """The running agent: the compiled graph plus the tables, tool names, and PubMed connection it uses."""
     graph: CompiledStateGraph
     catalog: ClassifierCatalog
     tool_names: list[str]

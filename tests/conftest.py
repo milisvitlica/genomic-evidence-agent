@@ -7,6 +7,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test-key")
 
 @pytest.fixture(scope="module")
 def catalog():
+    """Load the classifier tables once per module, or skip the test if the dataset is missing."""
     from genomic_evidence_agent.config import get_settings
     from genomic_evidence_agent.tools.classifier import ClassifierCatalog
 

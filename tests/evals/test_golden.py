@@ -24,6 +24,7 @@ CASES = GOLDEN["cases"]
 
 
 def test_golden_report(request):
+    """Grade every golden case, write the markdown report, and fail if any case or prompt rule fails."""
     prompt_missing = [rule for rule in GOLDEN["prompt_must_include"] if rule not in SYSTEM_PROMPT]
     results = []
     for case in CASES:
@@ -42,17 +43,20 @@ def test_golden_report(request):
 
 
 def test_prompt_still_states_the_rules_the_cases_rely_on():
+    """The system prompt contains every rule the golden cases rely on."""
     missing = [rule for rule in GOLDEN["prompt_must_include"] if rule not in SYSTEM_PROMPT]
     assert missing == []
 
 
 @pytest.mark.parametrize("case", CASES, ids=[case["id"] for case in CASES])
 def test_scripted_calls_satisfy_the_tool_rules(case):
+    """Each case's scripted tool calls meet its tool requirements."""
     assert grade_tools(case["calls"], case) == []
 
 
 @pytest.mark.parametrize("case", CASES, ids=[case["id"] for case in CASES])
 def test_golden_retrieval_and_answer_checks(case, request):
+    """Retrieval matches the expected evidence, the reference answer passes, and the unfaithful answer fails."""
     outputs = _execute(case, request)
     assert grade_evidence(outputs, case) == []
     reference = render_answer(case["reference_answer"], outputs, case)
@@ -61,16 +65,19 @@ def test_golden_retrieval_and_answer_checks(case, request):
 
 
 def test_a_short_brca2_page_does_not_count_as_the_full_tool_plan():
+    """One page of 10 BRCA2 results must not satisfy the case's required tool plan."""
     case = _case("brca2-pathogenic-page")
     short = [{"tool": "query_joined_dataset", "args": {"gene": "BRCA2", "label": "pathogenic", "limit": 10}}]
     assert grade_tools(short, case) != []
 
 
 def _case(case_id: str) -> dict[str, Any]:
+    """Look up a golden case by id."""
     return next(case for case in CASES if case["id"] == case_id)
 
 
 def _execute(case: dict[str, Any], request: pytest.FixtureRequest) -> list[dict[str, Any]]:
+    """Run a case's scripted calls against the real tables or a mocked PubMed and return the payloads."""
     catalog = None
     if any(call["tool"].startswith("query_") for call in case["calls"]):
         catalog = request.getfixturevalue("catalog")
@@ -94,7 +101,9 @@ def _execute(case: dict[str, Any], request: pytest.FixtureRequest) -> list[dict[
 
 
 def _empty_pubmed() -> httpx.Client:
+    """Return an HTTP client whose PubMed search always finds no articles."""
     def handler(request: httpx.Request) -> httpx.Response:
+        """Answer every request with an empty PubMed search result."""
         return httpx.Response(200, json={"esearchresult": {"idlist": []}})
 
     return httpx.Client(transport=httpx.MockTransport(handler))

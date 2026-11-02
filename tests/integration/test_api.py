@@ -5,6 +5,7 @@ from genomic_evidence_agent.config import get_settings
 
 
 def test_invalid_evidence_json_is_appended(tmp_path, monkeypatch):
+    """An invalid JSON body gets a 422 and is written to the trace log."""
     destination = tmp_path / "trace-examples.log"
     monkeypatch.setattr("genomic_evidence_agent.agent.trace.TRACE_LOG", destination)
     get_settings.cache_clear()
@@ -21,6 +22,7 @@ def test_invalid_evidence_json_is_appended(tmp_path, monkeypatch):
 
 
 def test_home_page_is_served():
+    """The home page returns HTML that contains the UI controls."""
     get_settings.cache_clear()
     with TestClient(create_app()) as client:
         response = client.get("/")
@@ -32,6 +34,7 @@ def test_home_page_is_served():
 
 
 def test_health_lists_tools():
+    """``/health`` lists the four tools, the stdio PubMed MCP status, and both tables."""
     get_settings.cache_clear()
     with TestClient(create_app()) as client:
         response = client.get("/health")

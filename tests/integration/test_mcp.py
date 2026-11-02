@@ -6,9 +6,11 @@ from genomic_evidence_agent.mcp.pubmed_server import connect_pubmed_mcp
 
 
 def test_pubmed_mcp_exposes_search_and_article_details():
+    """The PubMed MCP server exposes search_pubmed and get_article_details."""
     settings = Settings(pubmed_mcp_enabled=True, ncbi_api_key=None, ncbi_email=None)
 
     async def run() -> None:
+        """Connect to the server, check its tools and schemas, and always close the connection."""
         connection = await connect_pubmed_mcp(settings)
         try:
             by_name = {tool.name: tool for tool in connection.tools}
@@ -26,6 +28,7 @@ def test_pubmed_mcp_exposes_search_and_article_details():
 
 
 def _schema(tool) -> object:
+    """Return the tool's argument schema as a JSON schema when possible."""
     schema = tool.args_schema
     if hasattr(schema, "model_json_schema"):
         return schema.model_json_schema()

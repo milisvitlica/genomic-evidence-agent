@@ -28,6 +28,7 @@ PAGE = Path(__file__).resolve().parent / "static" / "index.html"
 
 
 def message_text(content: Any) -> str:
+    """Flatten model message content (a string or a list of text blocks) into plain text."""
     if isinstance(content, str):
         return content
     if isinstance(content, list):
@@ -46,8 +47,10 @@ def message_text(content: Any) -> str:
 
 
 def create_app() -> FastAPI:
+    """Build the FastAPI app, its routes, and the agent that starts with the server."""
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        """Build the agent when the server starts and close it when the server stops."""
         app.state.runtime = await build_evidence_agent()
         try:
             yield
@@ -62,6 +65,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(RequestValidationError)
     async def log_invalid_request(request: Request, exc: RequestValidationError):
+        """Log rejected ``/evidence`` requests to the trace file, then return FastAPI's normal 422 response."""
         if request.url.path == "/evidence":
             errors = exc.errors()
             first = errors[0] if errors else {}
@@ -71,10 +75,12 @@ def create_app() -> FastAPI:
 
     @app.get("/", include_in_schema=False)
     async def home() -> FileResponse:
+        """Serve the single-page web UI."""
         return FileResponse(PAGE)
 
     @app.get("/health", response_model=HealthResponse)
     async def health() -> HealthResponse:
+        """Report the model, table availability, tool names, and PubMed MCP status."""
         runtime: EvidenceAgent = app.state.runtime
         return HealthResponse(
             status="ok",
@@ -90,6 +96,7 @@ def create_app() -> FastAPI:
 
     @app.post("/examples", response_model=SaveExampleResponse)
     async def save_example(body: SaveExampleRequest) -> SaveExampleResponse:
+        """Save a conversation thread as a markdown example file."""
         runtime: EvidenceAgent = app.state.runtime
         snapshot = await runtime.graph.aget_state({"configurable": {"thread_id": body.thread_id}})
         messages = (snapshot.values or {}).get("messages") or []
@@ -101,6 +108,7 @@ def create_app() -> FastAPI:
 
     @app.post("/evidence", response_model=EvidenceResponse)
     async def evidence(body: EvidenceRequest) -> EvidenceResponse:
+        """Run the agent on a question and return the answer with its tool trace."""
         runtime: EvidenceAgent = app.state.runtime
         thread_id = body.thread_id or str(uuid4())
         timing = ToolTiming()

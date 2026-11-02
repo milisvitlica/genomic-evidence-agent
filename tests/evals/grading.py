@@ -55,6 +55,7 @@ def load_golden() -> dict[str, Any]:
 
 
 def _case_from_row(row: dict[str, str]) -> dict[str, Any]:
+    """Turn one CSV row of the golden sheet into a case dict."""
     calls = [_call(part) for part in _split_semi(row["calls"])]
     tools: dict[str, Any] = {"required": _split_semi(row["required_tools"])}
     if row["required_args"].strip():
@@ -73,6 +74,7 @@ def _case_from_row(row: dict[str, str]) -> dict[str, Any]:
 
 
 def _answer(row: dict[str, str]) -> dict[str, Any]:
+    """Build the answer criteria (citations, phrases, flags) from a CSV row."""
     answer: dict[str, Any] = {}
     cites: dict[int, dict[str, list[str]]] = {}
     for part in _split_semi(row["cite_fields"]):
@@ -102,16 +104,19 @@ def _answer(row: dict[str, str]) -> dict[str, Any]:
 
 
 def _call(text: str) -> dict[str, Any]:
+    """Parse ``tool key=value ...`` into ``{tool, args}``."""
     tool, args = _tool_and_args(text)
     return {"tool": tool, "args": args}
 
 
 def _required_args(text: str) -> dict[str, Any]:
+    """Parse ``tool key=value ...`` into a required-argument rule ``{tool, match}``."""
     tool, args = _tool_and_args(text)
     return {"tool": tool, "match": args}
 
 
 def _tool_and_args(text: str) -> tuple[str, dict[str, Any]]:
+    """Split ``tool key=value ...`` into the tool name and a dict of typed arguments."""
     tokens = _tokens(text)
     args = {}
     for token in tokens[1:]:
@@ -121,6 +126,7 @@ def _tool_and_args(text: str) -> tuple[str, dict[str, Any]]:
 
 
 def _evidence(text: str) -> dict[str, Any]:
+    """Parse ``0 n_matches=1 gene=ABCA4 ...`` into an evidence spec for one call."""
     tokens = _tokens(text)
     spec: dict[str, Any] = {"call": int(tokens[0])}
     record: dict[str, Any] = {}
@@ -147,16 +153,19 @@ def _evidence(text: str) -> dict[str, Any]:
 
 
 def _cite(text: str) -> tuple[int, list[str]]:
+    """Parse ``call:field field`` into the call index and a list of field names."""
     call, fields = text.split(":", 1)
     return int(call), fields.split()
 
 
 def _empty_call(text: str) -> dict[str, Any]:
+    """Parse ``call=phrase|phrase`` into the phrases that must appear when that call returned nothing."""
     call, phrases = text.split("=", 1)
     return {"call": int(call), "phrases": [phrase.strip() for phrase in phrases.split("|") if phrase.strip()]}
 
 
 def _split_semi(text: str) -> list[str]:
+    """Split on ``;`` but not inside double quotes."""
     parts: list[str] = []
     current: list[str] = []
     quoted = False
@@ -178,6 +187,7 @@ def _split_semi(text: str) -> list[str]:
 
 
 def _tokens(text: str) -> list[str]:
+    """Split on whitespace but not inside double quotes. The quotes are removed."""
     tokens: list[str] = []
     current: list[str] = []
     quoted = False
@@ -199,6 +209,7 @@ def _tokens(text: str) -> list[str]:
 
 
 def _typed(raw: str) -> Any:
+    """Convert a string to an int or float when it looks like a number."""
     if re.fullmatch(r"-?\d+", raw):
         return int(raw)
     if re.fullmatch(r"-?\d+\.\d+", raw):
@@ -301,6 +312,7 @@ def render_answer(template: str, outputs: list[dict[str, Any]], case: dict[str, 
 
 
 def _args_match(call: dict[str, Any], spec: dict[str, Any]) -> bool:
+    """Return True if the call uses the rule's tool and every required argument matches."""
     if (call.get("tool") or call.get("name")) != spec["tool"]:
         return False
     args = call.get("args") or {}
@@ -320,10 +332,12 @@ def _args_match(call: dict[str, Any], spec: dict[str, Any]) -> bool:
 
 
 def _mentions_number(text: str, value: float) -> bool:
+    """Return True if the text contains a number within tolerance of ``value``."""
     return any(abs(float(match.group()) - value) <= _NUMBER_TOLERANCE for match in _NUMBER.finditer(text))
 
 
 def _says_incomplete(answer: str, outputs: list[dict[str, Any]]) -> bool:
+    """Return True if nothing was paged, or the answer says it is incomplete and gives the total count."""
     text = answer.lower()
     paged = [payload for payload in outputs if int(payload.get("n_matches") or 0) > int(payload.get("returned") or 0)]
     if not paged:
@@ -334,10 +348,12 @@ def _says_incomplete(answer: str, outputs: list[dict[str, Any]]) -> bool:
 
 
 def _pmid_tokens(answer: str) -> set[str]:
+    """Return every PMID-looking number in the answer."""
     return set(_PMID.findall(answer))
 
 
 def _known_pmids(outputs: list[dict[str, Any]]) -> set[str]:
+    """Return every PMID that appears in the tool outputs."""
     found: set[str] = set()
     for payload in outputs:
         for article in payload.get("articles") or []:

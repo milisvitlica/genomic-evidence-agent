@@ -10,6 +10,7 @@ FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 
 
 def test_variant_7884_matches_expected_record(catalog):
+    """VariationID 7884 returns the expected gene, name, label, and UniProt entry."""
     expected = json.loads((FIXTURES / "variant_lookup_expected.json").read_text(encoding="utf-8"))
     payload = catalog.query_joined_dataset(variation_id=expected["variation_id"])
     assert payload["table"] == expected["table"]
@@ -23,6 +24,7 @@ def test_variant_7884_matches_expected_record(catalog):
 
 
 def test_brca2_pathogenic_page_is_capped(catalog):
+    """A limit of 3 returns 3 rows even though more BRCA2 pathogenic variants match."""
     payload = catalog.query_joined_dataset(gene="BRCA2", label="pathogenic", limit=3)
     assert payload["n_matches"] > 3
     assert payload["returned"] == 3
@@ -31,6 +33,7 @@ def test_brca2_pathogenic_page_is_capped(catalog):
 
 
 def test_scored_vus_292_has_a_stored_prediction(catalog):
+    """VariationID 292 has a stored VUS prediction with a label and a probability."""
     payload = catalog.query_scored_vus(variation_id=292)
     assert payload["table"] == "vus_inference_predictions.parquet"
     record = payload["records"][0]
@@ -40,5 +43,6 @@ def test_scored_vus_292_has_a_stored_prediction(catalog):
 
 
 def test_labeled_variant_7884_is_absent_from_scored_vus(catalog):
+    """7884 is a labeled variant, so it is not in the scored VUS table."""
     missing = catalog.query_scored_vus(variation_id=7884)
     assert missing["n_matches"] == 0

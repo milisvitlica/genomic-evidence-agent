@@ -172,6 +172,7 @@ def render_example(title: str, limitations: str, turns: list[dict[str, Any]]) ->
 
 
 def _evidence(calls: list[dict[str, Any]]) -> str:
+    """Render a turn's tool calls and results as the evidence section."""
     if not calls:
         return "No tool call was returned."
     blocks: list[str] = []
@@ -184,6 +185,7 @@ def _evidence(calls: list[dict[str, Any]]) -> str:
 
 
 def _payload(content: str | None) -> str:
+    """Render one tool result as markdown, keeping only the chosen record or article fields."""
     if not content:
         return "No tool result was returned."
     try:
@@ -215,6 +217,7 @@ def _payload(content: str | None) -> str:
 
 
 def _is_inside(path: Path, root: Path) -> bool:
+    """Return True if ``path`` resolves to a location inside ``root``."""
     try:
         path.resolve().relative_to(root.resolve())
     except ValueError:
@@ -223,6 +226,7 @@ def _is_inside(path: Path, root: Path) -> bool:
 
 
 def _role(message: Any) -> str:
+    """Return ``user``, ``assistant``, or ``tool`` for a message, or an empty string if unknown."""
     kind = getattr(message, "type", None)
     if kind in {"human", "user"}:
         return "user"
@@ -242,6 +246,7 @@ def _role(message: Any) -> str:
 
 
 def _text(message: Any) -> str:
+    """Flatten a message's content into one string."""
     content = getattr(message, "content", None)
     if content is None and isinstance(message, dict):
         content = message.get("content")
@@ -263,6 +268,7 @@ def _text(message: Any) -> str:
 
 
 def _name(message: Any) -> str | None:
+    """Return the message's name as a string, or None."""
     name = getattr(message, "name", None)
     if name is None and isinstance(message, dict):
         name = message.get("name")
@@ -270,6 +276,7 @@ def _name(message: Any) -> str | None:
 
 
 def _tool_calls(message: Any) -> list[dict[str, Any]]:
+    """Return a message's tool calls as plain dicts."""
     calls = getattr(message, "tool_calls", None)
     if calls is None and isinstance(message, dict):
         calls = message.get("tool_calls")

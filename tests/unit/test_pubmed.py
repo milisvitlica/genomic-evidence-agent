@@ -9,6 +9,7 @@ FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 
 
 def test_parse_pubmed_summary_keeps_pmid_order():
+    """Parsed articles follow the order of the PMID list, not the order of the response."""
     payload = {
         "result": {
             "uids": ["2", "1"],
@@ -35,7 +36,9 @@ def test_parse_pubmed_summary_keeps_pmid_order():
 
 
 def test_search_pubmed_uses_esearch_then_esummary():
+    """search_pubmed calls esearch, then esummary, and returns the parsed articles."""
     def handler(request: httpx.Request) -> httpx.Response:
+        """Fake NCBI: esearch returns one id and esummary returns its summary."""
         if request.url.path.endswith("/esearch.fcgi"):
             assert request.url.params["term"] == "BRCA1"
             assert request.url.params["api_key"] == "secret"
@@ -100,7 +103,9 @@ ARTICLE_XML = """<?xml version="1.0"?>
 
 
 def test_get_article_details_reads_metadata_and_abstract():
+    """get_article_details returns metadata and abstract matching the saved fixture."""
     def handler(request: httpx.Request) -> httpx.Response:
+        """Fake NCBI efetch: check the request and return sample article XML."""
         assert request.url.path.endswith("/efetch.fcgi")
         assert request.url.params["id"] == "28061825"
         assert request.url.params["db"] == "pubmed"
@@ -115,11 +120,14 @@ def test_get_article_details_reads_metadata_and_abstract():
 
 
 def test_get_article_details_rejects_a_missing_pmid():
+    """A blank PMID returns an error without making a request."""
     assert get_article_details("   ")["error"] == "Provide a PubMed PMID."
 
 
 def test_get_article_details_reports_an_unknown_pmid():
+    """A PMID with no record in the response returns a ``No PubMed record`` error."""
     def handler(request: httpx.Request) -> httpx.Response:
+        """Fake NCBI efetch: return an empty article set."""
         return httpx.Response(200, text="<PubmedArticleSet></PubmedArticleSet>")
 
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:

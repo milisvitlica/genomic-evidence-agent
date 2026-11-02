@@ -63,6 +63,7 @@ MAX_LIMIT = 25
 
 
 def _jsonable(value: Any) -> Any:
+    """Convert numpy and pandas values to plain JSON-safe Python values. NaN and NA become None."""
     if value is None:
         return None
     if isinstance(value, (np.integer,)):
@@ -85,6 +86,7 @@ def _jsonable(value: Any) -> Any:
 
 
 def _cell(column: str, value: Any) -> Any:
+    """Clean one table cell: JSON-safe, long text shortened, VariationID as an int."""
     parsed = _jsonable(value)
     if column in LONG_TEXT and isinstance(parsed, str) and len(parsed) > TEXT_LIMIT:
         return parsed[: TEXT_LIMIT - 1] + "…"
@@ -94,6 +96,7 @@ def _cell(column: str, value: Any) -> Any:
 
 
 def _records(frame: pd.DataFrame, columns: list[str]) -> list[dict[str, Any]]:
+    """Turn DataFrame rows into dicts that keep only the wanted columns that exist."""
     present = [column for column in columns if column in frame.columns]
     rows: list[dict[str, Any]] = []
     for _, row in frame.iterrows():
@@ -102,6 +105,7 @@ def _records(frame: pd.DataFrame, columns: list[str]) -> list[dict[str, Any]]:
 
 
 def _cap(limit: int) -> int:
+    """Clamp the requested row limit to the range 1 to MAX_LIMIT."""
     return max(1, min(int(limit), MAX_LIMIT))
 
 
@@ -109,6 +113,7 @@ class ClassifierCatalog:
     """Cached reader for the two classifier tables the agent is allowed to query."""
 
     def __init__(self, joined_dataset: Path, scored_vus: Path):
+        """Remember the two table paths. Tables are read lazily on first use."""
         self.paths = {
             JOINED_TABLE: Path(joined_dataset),
             SCORED_VUS_TABLE: Path(scored_vus),
@@ -116,12 +121,14 @@ class ClassifierCatalog:
         self._frames: dict[str, pd.DataFrame] = {}
 
     def table_status(self) -> dict[str, dict[str, Any]]:
+        """Report each table's path and whether the file exists."""
         return {
             name: {"path": str(path), "exists": path.is_file()}
             for name, path in self.paths.items()
         }
 
     def _load(self, name: str) -> pd.DataFrame:
+        """Read a parquet table once and cache it. Raise FileNotFoundError if the file is missing."""
         if name not in self._frames:
             path = self.paths[name]
             if not path.is_file():
@@ -138,6 +145,7 @@ class ClassifierCatalog:
         label: str | None = None,
         limit: int = DEFAULT_LIMIT,
     ) -> dict[str, Any]:
+        """Filter the joined ClinVar-UniProt table by gene, id, name, or label. At least one filter is required."""
         if not any([gene and gene.strip(), variation_id is not None, variant_name and variant_name.strip(), label and label.strip()]):
             return {"error": "Provide at least one of gene, variation_id, variant_name, or label."}
         wanted = label.strip().lower() if label and label.strip() else None
@@ -165,6 +173,7 @@ class ClassifierCatalog:
         min_proba: float | None = None,
         limit: int = DEFAULT_LIMIT,
     ) -> dict[str, Any]:
+        """Filter the scored VUS table, highest y_proba first, and add a note that scores are computational evidence."""
         has_identity = any([
             gene and gene.strip(),
             variation_id is not None,
@@ -201,6 +210,7 @@ class ClassifierCatalog:
         variation_id: int | None,
         variant_name: str | None,
     ) -> pd.DataFrame:
+        """Narrow rows by VariationID, gene symbol, and variant name (exact match first, then substring)."""
         matched = frame
         if variation_id is not None and "VariationID" in matched.columns:
             ids = pd.to_numeric(matched["VariationID"], errors="coerce")
@@ -218,6 +228,7 @@ class ClassifierCatalog:
 
 
 def _dedupe_variations(frame: pd.DataFrame) -> pd.DataFrame:
+    """Keep one row per VariationID, and keep rows that have no valid id."""
     if "VariationID" not in frame.columns:
         return frame
     identified = frame.loc[pd.to_numeric(frame["VariationID"], errors="coerce").notna()].drop_duplicates("VariationID")
@@ -226,6 +237,7 @@ def _dedupe_variations(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def _page(table: str, frame: pd.DataFrame, columns: list[str], limit: int) -> dict[str, Any]:
+    """Build the response: table name, total matches, and the first ``limit`` records."""
     records = _records(frame.head(limit), columns)
     return {
         "table": table,

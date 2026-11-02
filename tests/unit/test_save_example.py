@@ -12,6 +12,7 @@ from genomic_evidence_agent.tools.examples import (
 
 
 def _chat():
+    """Build a sample chat: a question, a tool call and result, an answer, then a save request."""
     evidence = {
         "table": "clinvar_uniprot_joined.parquet",
         "n_matches": 1,
@@ -58,6 +59,7 @@ def _chat():
 
 
 def test_conversation_turns_skip_the_save_request():
+    """The save request itself is left out of the saved turns."""
     turns = conversation_turns(_chat())
     assert len(turns) == 1
     assert turns[0]["question"].startswith("What does the joined table say")
@@ -67,6 +69,7 @@ def test_conversation_turns_skip_the_save_request():
 
 
 def test_write_example_keeps_selected_fields_and_limitations(tmp_path):
+    """The saved markdown keeps the selected record fields and the limitations text."""
     path_message = write_example(
         tmp_path,
         title="Variation 7884",
@@ -88,6 +91,7 @@ def test_write_example_keeps_selected_fields_and_limitations(tmp_path):
 
 
 def test_write_example_does_not_replace_an_existing_file(tmp_path):
+    """Saving to an existing filename raises an error instead of overwriting."""
     kwargs = {
         "title": "Variation 7884",
         "filename": "variation-7884",
@@ -100,6 +104,7 @@ def test_write_example_does_not_replace_an_existing_file(tmp_path):
 
 
 def test_example_path_stays_inside_the_directory(tmp_path):
+    """Filenames are sanitized so the path stays inside the directory."""
     path = example_path(tmp_path, "../../etc/passwd")
     assert path.parent == tmp_path.resolve()
     assert path.name == "saved-etc-passwd.md"
@@ -108,6 +113,7 @@ def test_example_path_stays_inside_the_directory(tmp_path):
 
 
 def test_save_conversation_writes_without_asking_the_model(tmp_path):
+    """Saving a conversation does not call the model and creates a separate file each time."""
     first = save_conversation(_chat(), tmp_path)
     second = save_conversation(_chat(), tmp_path)
     assert "saved-what-does-the-joined-table-say-about" in first

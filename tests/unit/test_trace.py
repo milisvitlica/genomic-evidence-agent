@@ -5,6 +5,7 @@ from genomic_evidence_agent.api.app import message_text
 
 
 def test_trace_messages_records_calls_and_results():
+    """Tool calls and results become trace events, using recorded timestamps or the clock."""
     messages = [
         HumanMessage(content="What is VariationID 7884?"),
         AIMessage(
@@ -64,6 +65,7 @@ def test_trace_messages_records_calls_and_results():
 
 
 def test_log_trace_appends_calls_to_the_trace_file(tmp_path):
+    """log_trace and log_rejected append calls, responses, the answer, and the rejection to the file."""
     destination = tmp_path / "trace-examples.log"
     log_trace(
         "What is VariationID 7884?",
@@ -96,5 +98,6 @@ def test_log_trace_appends_calls_to_the_trace_file(tmp_path):
 
 
 def test_message_text_flattens_blocks():
+    """message_text returns strings unchanged and joins text blocks."""
     assert message_text("plain") == "plain"
     assert message_text([{"type": "text", "text": "hello"}]) == "hello"

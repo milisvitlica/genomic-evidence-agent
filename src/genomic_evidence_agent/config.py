@@ -37,6 +37,7 @@ _DEFAULT_SCORED_VUS = (
 
 
 class Settings(BaseSettings):
+    """Settings read from environment variables or ``.env``: table paths, model name, and PubMed options."""
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -54,4 +55,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    """Load the settings once and reuse them on later calls."""
     return Settings()

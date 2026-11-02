@@ -29,6 +29,7 @@ class ToolTiming(BaseCallbackHandler):
     """Record when each tool starts and when it returns."""
 
     def __init__(self) -> None:
+        """Start with empty lists for tool start and end timestamps."""
         self.started: list[str] = []
         self.ended: list[str] = []
 
@@ -44,6 +45,7 @@ class ToolTiming(BaseCallbackHandler):
         inputs: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
+        """Record the time a tool starts."""
         self.started.append(utc_now())
 
     async def on_tool_end(
@@ -55,6 +57,7 @@ class ToolTiming(BaseCallbackHandler):
         tags: list[str] | None = None,
         **kwargs: Any,
     ) -> None:
+        """Record the time a tool finishes."""
         self.ended.append(utc_now())
 
 
@@ -136,6 +139,7 @@ def log_rejected(detail: str, *, body: Any = None, path: Path | None = None) -> 
 
 
 def _append(text: str, path: Path | None) -> None:
+    """Append text to the trace log (or ``path``), creating the folder and holding a lock while writing."""
     destination = path or TRACE_LOG
     destination.parent.mkdir(parents=True, exist_ok=True)
     with _WRITE_LOCK:
@@ -145,12 +149,14 @@ def _append(text: str, path: Path | None) -> None:
 
 
 def _take(times: list[str], index: int, clock: Any) -> str:
+    """Return the recorded time at ``index``, or ask the clock when none was recorded."""
     if index < len(times):
         return times[index]
     return clock()
 
 
 def _tool_calls(message: Any) -> list[dict[str, Any]]:
+    """Return a message's tool calls as plain dicts, whether the message is an object or a dict."""
     calls = getattr(message, "tool_calls", None)
     if calls is None and isinstance(message, dict):
         calls = message.get("tool_calls")
@@ -171,6 +177,7 @@ def _tool_calls(message: Any) -> list[dict[str, Any]]:
 
 
 def _is_tool_result(message: Any) -> bool:
+    """Return True if the message is a tool result (type or role ``tool``)."""
     kind = getattr(message, "type", None)
     if kind == "tool":
         return True
@@ -180,6 +187,7 @@ def _is_tool_result(message: Any) -> bool:
 
 
 def _name(message: Any) -> str | None:
+    """Return the message's name as a string, or None."""
     name = getattr(message, "name", None)
     if name is None and isinstance(message, dict):
         name = message.get("name")
@@ -187,6 +195,7 @@ def _name(message: Any) -> str | None:
 
 
 def _content(message: Any) -> str:
+    """Flatten a message's content (string, text blocks, or anything else) into one string."""
     content = getattr(message, "content", None)
     if content is None and isinstance(message, dict):
         content = message.get("content")

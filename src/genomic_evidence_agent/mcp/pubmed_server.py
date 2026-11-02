@@ -86,6 +86,7 @@ class PubmedMcp:
     tools: list
 
     async def aclose(self) -> None:
+        """Close the stdio session with the PubMed server."""
         await self._adapter.__aexit__(None, None, None)
 
 

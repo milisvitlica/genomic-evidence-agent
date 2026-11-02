@@ -30,12 +30,14 @@ TEXT_LIMIT = 400
 
 @dataclass(frozen=True)
 class Turn:
+    """One question sent to the API. ``continue_thread`` reuses the previous turn's thread."""
     question: str
     continue_thread: bool = False
 
 
 @dataclass(frozen=True)
 class Case:
+    """One example scenario: an id and the turns to send, in order."""
     id: str
     turns: tuple[Turn, ...]
 
@@ -87,6 +89,7 @@ def shorten(value: Any, limit: int = TEXT_LIMIT) -> Any:
 
 
 def parse_content(content: str | None) -> Any:
+    """Parse a tool result string as JSON, or return the raw text if it is not JSON."""
     if not content:
         return None
     try:
@@ -96,11 +99,21 @@ def parse_content(content: str | None) -> Any:
 
 
 def select_cases(only: str | None) -> list[Case]:
+    """Pick the cases to run from the ``--only`` value.
+
+    ``only`` is a comma-separated string such as ``"07,12"``. Each item matches a case
+    id exactly or as a prefix (``07`` matches ``07-pubmed-abca4``). With no value, all
+    cases are returned. An item that matches no case stops the script with an error.
+    """
     if not only:
         return list(CASES)
+    # "07, 12" -> {"07", "12"}: split on commas, trim spaces, drop empty pieces.
     wanted = {item.strip() for item in only.split(",") if item.strip()}
+    # Keep every case whose id equals a wanted item or starts with one.
     selected = [case for case in CASES if case.id in wanted or any(case.id.startswith(item) for item in wanted)]
+    # Items that are not the exact id of any selected case...
     unknown = wanted - {case.id for case in selected}
+    # ...and also not a prefix of any selected case are the ones that matched nothing.
     unknown -= {item for item in wanted if any(case.id.startswith(item) for case in selected)}
     if unknown:
         known = ", ".join(case.id for case in CASES)
@@ -109,6 +122,7 @@ def select_cases(only: str | None) -> list[Case]:
 
 
 def post_evidence(client: httpx.Client, base_url: str, question: str, thread_id: str | None) -> dict[str, Any]:
+    """POST one question to ``/evidence`` and return ok, status_code, and body without raising on HTTP errors."""
     payload: dict[str, Any] = {"question": question}
     if thread_id:
         payload["thread_id"] = thread_id
@@ -124,6 +138,7 @@ def post_evidence(client: httpx.Client, base_url: str, question: str, thread_id:
 
 
 def run_case(client: httpx.Client, base_url: str, case: Case) -> dict[str, Any]:
+    """Send every turn of a case in order, reusing the thread id only for turns that continue the thread."""
     turns: list[dict[str, Any]] = []
     thread_id: str | None = None
     for turn in case.turns:
@@ -144,6 +159,7 @@ def run_case(client: httpx.Client, base_url: str, case: Case) -> dict[str, Any]:
 
 
 def evidence_block(trace: list[dict[str, Any]]) -> str:
+    """Format the trace's tool calls and results as markdown for the review draft."""
     calls = [event for event in trace if event.get("type") == "tool_call"]
     results = [event for event in trace if event.get("type") == "tool_result"]
     if not calls and not results:
@@ -170,6 +186,7 @@ def evidence_block(trace: list[dict[str, Any]]) -> str:
 
 
 def render_markdown(case_result: dict[str, Any]) -> str:
+    """Build the markdown review draft for one case from its recorded turns."""
     parts = [
         f"# {case_result['id']}",
         "",
@@ -218,6 +235,7 @@ def render_markdown(case_result: dict[str, Any]) -> str:
 
 
 def write_case(output_dir: Path, case_result: dict[str, Any]) -> None:
+    """Write the raw JSON and the markdown draft for one case into ``output_dir``."""
     case_id = case_result["id"]
     (output_dir / f"{case_id}.json").write_text(
         json.dumps(case_result, indent=2, ensure_ascii=False, default=str) + "\n",
@@ -227,6 +245,7 @@ def write_case(output_dir: Path, case_result: dict[str, Any]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Parse the arguments, run the selected cases against the API, and return the exit code."""
     parser = argparse.ArgumentParser(description="Run the fixed example questions against a local evidence API.")
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="API origin. Default: %(default)s")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help="Directory for the raw runs. Default: %(default)s")
