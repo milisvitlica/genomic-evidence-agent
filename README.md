@@ -147,5 +147,15 @@ pytest tests/evals
 
 Integration and eval tests read `JOINED_DATASET` and `SCORED_VUS` and skip when those files
 are missing. `tests/evals/golden_cases.csv` holds the questions, expected tool calls,
-evidence fields, and answer checks. `pytest tests/evals` grades them without calling the
-model and writes `outputs/evals/report.md`, whose first line is `n_passed / n_total`.
+evidence fields, and answer checks. `pytest tests/evals` checks the cases and the grading
+rules without calling the model, so it prints no report.
+
+To ask the real agent the same questions, once, set `OPENAI_API_KEY` in `.env` and run:
+
+```bash
+EVAL_AGENT=1 pytest tests/evals/test_golden.py -k live_agent -s
+```
+
+It calls the model and PubMed, so results can vary between runs. It grades the tools the
+agent chose and whether its answer reports what those tools returned, and writes
+`outputs/evals/report.md`: a first line `n_passed / n_total`, a case / pass / fail table, then each answer. `EVAL_CASES=vus-only-292,pubmed-no-papers` limits the cases.

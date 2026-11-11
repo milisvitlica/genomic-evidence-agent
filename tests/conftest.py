@@ -2,7 +2,10 @@ import os
 
 import pytest
 
-os.environ.setdefault("OPENAI_API_KEY", "test-key")
+# Tests never call the model, so a placeholder key is enough. The live agent eval
+# (EVAL_AGENT=1) needs the real key from .env, which config.py loads when it is imported.
+if os.environ.get("EVAL_AGENT") != "1":
+    os.environ.setdefault("OPENAI_API_KEY", "test-key")
 
 
 @pytest.fixture(scope="module")

@@ -11,33 +11,49 @@ CASES_PATH = Path(__file__).with_name("golden_cases.csv")
 RULES_PATH = Path(__file__).with_name("prompt_rules.txt")
 _NUMBER = re.compile(r"\d+(?:\.\d+)?")
 _PMID = re.compile(r"\b\d{5,9}\b")
-_INCOMPLETE = ("incomplete", "not all", "only the first", "of them")
+_INCOMPLETE = ("incomplete", "not all", "only the first", "of them", "partial", "first 25", "truncated", "out of a total", "limited to", "more pathogenic", "more variants")
 _NUMBER_TOLERANCE = 0.01
 
 
-def write_report(results: list[dict[str, Any]], *, prompt_ok: bool, path: Path | None = None) -> Path:
-    """Write ``n_passed / n_total`` and one row per golden case."""
+def write_agent_report(
+    results: list[dict[str, Any]],
+    path: Path | None = None,
+    meta: dict[str, str] | None = None,
+) -> Path:
+    """Write ``n_passed / n_total`` and the run details, then a case table and each answer."""
     from genomic_evidence_agent.config import repo_root
 
     destination = path or (repo_root() / "outputs" / "evals" / "report.md")
     destination.parent.mkdir(parents=True, exist_ok=True)
     passed = sum(1 for row in results if row["passed"])
-    total = len(results)
     lines = [
-        "# Golden eval",
+        "# Agent eval",
         "",
-        f"{passed} / {total} passed",
+        f"{passed} / {len(results)} passed",
         "",
-        "| Case | Result | Detail |",
-        "| --- | --- | --- |",
+    ]
+    lines.extend(f"- {label}: {value}" for label, value in (meta or {}).items())
+    if meta:
+        lines.append("")
+    lines += [
+        "| Case | Result | Tools the agent called | Problems |",
+        "| --- | --- | --- | --- |",
     ]
     for row in results:
-        detail = "; ".join(row["errors"]).replace("|", "/")
+        used = ", ".join(_describe_call(call) for call in row["calls"]) or "none"
+        problems = "; ".join(row["errors"])
         status = "pass" if row["passed"] else "fail"
-        lines.append(f"| {row['id']} | {status} | {detail} |")
-    lines.extend(["", f"Prompt rules: {'pass' if prompt_ok else 'fail'}", ""])
+        lines.append(f"| {row['id']} | {status} | {used} | {problems} |".replace("||", "| |"))
+    lines.append("")
+    for row in results:
+        lines.extend([f"## {row['id']}", "", row["answer"] or "(no answer)", ""])
     destination.write_text("\n".join(lines), encoding="utf-8")
     return destination
+
+
+def _describe_call(call: dict[str, Any]) -> str:
+    args = " ".join(f"{key}={value}" for key, value in (call.get("args") or {}).items())
+    return f"{call.get('tool')} {args}".strip().replace("|", "/")
 
 
 def load_golden() -> dict[str, Any]:
@@ -311,6 +327,32 @@ def render_answer(template: str, outputs: list[dict[str, Any]], case: dict[str, 
     )
 
 
+def map_agent_outputs(
+    scripted_calls: list[dict[str, Any]],
+    actual_calls: list[dict[str, Any]],
+    case_id: str,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Line the agent's real tool results up with the case's scripted call numbers.
+
+    Each scripted call is matched to the agent's call with the same tool and
+    arguments (extra arguments such as a larger limit are allowed). When several
+    match, the last one wins. A scripted call the agent never made gets an empty
+    payload and an error.
+    """
+    outputs: list[dict[str, Any]] = []
+    errors: list[str] = []
+    for index, scripted in enumerate(scripted_calls):
+        spec = {"tool": scripted["tool"], "match": scripted["args"]}
+        matches = [call for call in actual_calls if _args_match(call, spec)]
+        if matches:
+            outputs.append(matches[-1].get("output") or {})
+        else:
+            outputs.append({})
+            wanted = " ".join(f"{key}={value}" for key, value in scripted["args"].items())
+            errors.append(f"{case_id}: agent never called {scripted['tool']} {wanted}".rstrip())
+    return outputs, errors
+
+
 def _args_match(call: dict[str, Any], spec: dict[str, Any]) -> bool:
     """Return True if the call uses the rule's tool and every required argument matches."""
     if (call.get("tool") or call.get("name")) != spec["tool"]:
@@ -337,14 +379,15 @@ def _mentions_number(text: str, value: float) -> bool:
 
 
 def _says_incomplete(answer: str, outputs: list[dict[str, Any]]) -> bool:
-    """Return True if nothing was paged, or the answer says it is incomplete and gives the total count."""
+    """Return True if nothing was paged, or the answer says more rows exist (or gives "shown of total")."""
     text = answer.lower()
     paged = [payload for payload in outputs if int(payload.get("n_matches") or 0) > int(payload.get("returned") or 0)]
     if not paged:
         return True
-    if not any(phrase in text for phrase in _INCOMPLETE):
-        return False
-    return any(str(payload["n_matches"]) in answer for payload in paged)
+    if any(phrase in text for phrase in _INCOMPLETE):
+        return True
+    # Giving the total next to the number shown ("25 of 651") also says the list is incomplete.
+    return any(str(p["n_matches"]) in answer and str(p["returned"]) in answer for p in paged)
 
 
 def _pmid_tokens(answer: str) -> set[str]:
