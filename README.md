@@ -26,7 +26,9 @@ probability, Youden threshold, and `pred_label`. This service does not reload th
 
 PubMed is on MCP because it is not tied to these tables. Another agent can reuse it,
 it only wraps a public API, and its search logic can change without changing the agent.
-The API starts it as a stdio process and keeps one session open. Node.js is not required.
+Both PubMed tools are served by one MCP server, since they share the NCBI credentials
+and rate limit and are used together: search, then fetch an abstract. The API starts that
+server as a stdio process and keeps one session open. Node.js is not required.
 
 ## Getting started
 
@@ -75,8 +77,8 @@ curl -s http://127.0.0.1:8000/evidence \
 Pass the returned `thread_id` on the next request to continue the conversation. Memory is
 in-process (`MemorySaver`), so a restart clears it.
 
-The PubMed server also runs on its own and speaks MCP on stdin and stdout. Any MCP client
-can launch it, with `NCBI_API_KEY` and `NCBI_EMAIL` in the environment if you have them:
+The PubMed server also runs on its own and speaks MCP on stdin and stdout. It exposes
+`search_pubmed` and `get_article_details`. Any MCP client can launch it, with `NCBI_API_KEY` and `NCBI_EMAIL` in the environment if you have them:
 
 ```bash
 python -m genomic_evidence_agent.mcp
